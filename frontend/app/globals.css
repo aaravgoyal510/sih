@@ -1,0 +1,210 @@
+:root {
+  --primary-green: #15803d;
+  --primary-green-hover: #166534;
+  --accent-gold: #d97706;
+  --bg-subtle: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-light: #e2e8f0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-subtle);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile-first layout container */
+.app-container {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background-color: var(--card-bg);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header styling */
+.header-bar {
+  background-color: var(--primary-green);
+  color: white;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.header-badge {
+  background-color: rgba(255, 255, 255, 0.2);
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+/* Main Content Padding */
+.content-area {
+  padding: 20px;
+  flex: 1;
+}
+
+/* Farmer Greeting Card */
+.farmer-card {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(21, 128, 61, 0.15);
+}
+
+.farmer-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.farmer-location {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* 4-Button Grid Layout */
+.farmer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Big Action Button */
+.action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background-color: #ffffff;
+  border: 2px solid var(--border-light);
+  border-radius: 16px;
+  padding: 24px 12px;
+  text-decoration: none;
+  color: var(--text-main);
+  transition: all 0.2s ease-in-out;
+  min-height: 140px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.action-button:hover,
+.action-button:active {
+  border-color: var(--primary-green);
+  background-color: #f0fdf4;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(21, 128, 61, 0.12);
+}
+
+.action-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background-color: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.action-icon-wrapper.sell {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.action-icon-wrapper.prices {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.action-icon-wrapper.services {
+  background-color: #e0e7ff;
+  color: #4f46e5;
+}
+
+.action-icon-wrapper.offers {
+  background-color: #fae8ff;
+  color: #c026d3;
+}
+
+.action-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.action-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+/* Form Styles */
+.input-group {
+  margin-bottom: 16px;
+}
+
+.input-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-main);
+}
+
+.input-field {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-field:focus {
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.15);
+}
+
+.btn-primary {
+  width: 100%;
+  background-color: var(--primary-green);
+  color: white;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 16px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-green-hover);
+}

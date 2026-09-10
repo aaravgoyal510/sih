@@ -1,0 +1,337 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  phone         String   @unique
+  passwordHash  String?
+  preferredLang String   @default("en") // en | hi | mr
+  createdAt     DateTime @default(now())
+  party         Party?
+}
+
+model Party {
+  id         String      @id @default(uuid())
+  userId     String      @unique
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  district   String
+  village    String?
+  roles      PartyRole[]
+  fpoId      String?
+  fpo        Fpo?        @relation(fields: [fpoId], references: [id])
+
+  listings          Listing[]
+  requirements      Requirement[]
+  verifications     Verification[]
+  credibility       CredibilityScore?
+  warehouseReceipts WarehouseReceipt[]
+}
+
+enum PartyRole {
+  FARMER
+  FPO_ADMIN
+  BUYER
+  STORAGE_OPERATOR
+  TRANSPORT_OPERATOR
+  EQUIPMENT_PROVIDER
+  LABOR_CONTRACTOR
+  INPUT_SUPPLIER
+  DISTRICT_ADMIN
+  STATE_ADMIN
+  PLATFORM_ADMIN
+}
+
+model Fpo {
+  id              String   @id @default(uuid())
+  name            String
+  district        String
+  registrationRef String?  // NABARD/SFAC registry ref (Tier 3)
+  members         Party[]
+}
+
+enum ResourceType {
+  CROP_LOT
+  COLD_STORAGE
+  TRANSPORT
+  EQUIPMENT_SERVICE
+  LABOR
+  USED_EQUIPMENT
+  INPUT_GROUP_BUY
+  CONTRACT_FARMING
+}
+
+model Listing {
+  id            String        @id @default(uuid())
+  partyId       String
+  party         Party         @relation(fields: [partyId], references: [id])
+  resourceType  ResourceType
+  district      String
+  availableFrom DateTime?
+  availableTo   DateTime?
+  price         Float?
+  priceUnit     String?       // per_kg | per_quintal | per_day | per_trip | flat
+  status        ListingStatus @default(OPEN)
+  attributes    Json          // validated per resourceType at API layer, see TechSpec.md
+  createdAt     DateTime      @default(now())
+
+  offers        Offer[]
+}
+
+enum ListingStatus {
+  OPEN
+  POOLED
+  MATCHED
+  BOOKED
+  COMPLETED
+  EXPIRED
+}
+
+model Requirement {
+  id             String       @id @default(uuid())
+  partyId        String
+  party          Party        @relation(fields: [partyId], references: [id])
+  resourceType   ResourceType
+  district       String?
+  quantityNeeded Float?
+  budget         Float?
+  deadline       DateTime?
+  attributes     Json
+  createdAt      DateTime     @default(now())
+
+  offers         Offer[]
+}
+
+model Offer {
+  id            String       @id @default(uuid())
+  listingId     String
+  listing       Listing      @relation(fields: [listingId], references: [id])
+  requirementId String?
+  requirement   Requirement? @relation(fields: [requirementId], references: [id])
+  price         Float
+  status        OfferStatus  @default(PENDING)
+  createdAt     DateTime     @default(now())
+  booking       Booking?
+}
+
+enum OfferStatus {
+  PENDING
+  COUNTERED
+  ACCEPTED
+  REJECTED
+}
+
+model Booking {
+  id                String            @id @default(uuid())
+  offerId           String            @unique
+  offer             Offer             @relation(fields: [offerId], references: [id])
+  totalAmount       Float?
+  agreementUrl      String?
+  fulfillmentStatus FulfillmentStatus @default(PENDING)
+  paymentStatus     PaymentStatus     @default(PENDING)
+  logisticsNote     String?
+  createdAt         DateTime          @default(now())
+  dispute           Dispute?
+  ratings           Rating[]
+}
+
+enum FulfillmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  ESCROWED
+  RELEASED
+  FAILED
+}
+
+model Rating {
+  id              String   @id @default(uuid())
+  bookingId       String
+  booking         Booking  @relation(fields: [bookingId], references: [id])
+  giverPartyId    String
+  receiverPartyId String
+  score           Int      // 1-5
+  comment         String?
+  createdAt       DateTime @default(now())
+}
+
+model Dispute {
+  id                String          @id @default(uuid())
+  bookingId         String          @unique
+  booking           Booking         @relation(fields: [bookingId], references: [id])
+  raisedByPartyId   String
+  respondentPartyId String
+  category          DisputeCategory
+  reason            String
+  evidenceUrls      String[]
+  status            DisputeStatus   @default(OPEN)
+  districtAdminId   String?
+  stateAdminId      String?
+  resolutionNote    String?
+  slaDeadline       DateTime?
+  resolvedAt        DateTime?
+  createdAt         DateTime        @default(now())
+
+  auditLogs         DisputeAuditLog[]
+}
+
+enum DisputeCategory {
+  PAYMENT
+  QUALITY
+  LOGISTICS
+  STORAGE_DAMAGE
+  SERVICE_NOT_RENDERED
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_DISTRICT_REVIEW
+  ESCALATED
+  UNDER_STATE_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+model DisputeAuditLog {
+  id         String   @id @default(uuid())
+  disputeId  String
+  dispute    Dispute  @relation(fields: [disputeId], references: [id])
+  actorId    String
+  fromStatus String
+  toStatus   String
+  note       String?
+  createdAt  DateTime @default(now())
+}
+
+model CredibilityScore {
+  id           String   @id @default(uuid())
+  partyId      String   @unique
+  party        Party    @relation(fields: [partyId], references: [id])
+  score        Float    @default(50) // 0-100
+  txnCount     Int      @default(0)
+  onTimePayPct Float?
+  disputeCount Int      @default(0)
+  suspended    Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+}
+
+model Verification {
+  id              String             @id @default(uuid())
+  partyId         String
+  party           Party              @relation(fields: [partyId], references: [id])
+  role            PartyRole
+  documentType    String
+  documentRef     String?
+  documentUrl     String?
+  status          VerificationStatus @default(PENDING)
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  rejectionReason String?
+  expiresAt       DateTime?
+  slaDeadline     DateTime?
+  createdAt       DateTime           @default(now())
+
+  auditLogs       VerificationAuditLog[]
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  ESCALATED
+}
+
+model VerificationAuditLog {
+  id             String       @id @default(uuid())
+  verificationId String
+  verification   Verification @relation(fields: [verificationId], references: [id])
+  actorId        String
+  fromStatus     String
+  toStatus       String
+  note           String?
+  createdAt      DateTime     @default(now())
+}
+
+model MandiPrice {
+  id         String   @id @default(uuid())
+  crop       String
+  district   String
+  market     String
+  pricePerKg Float
+  arrivalsKg Float?
+  source     String   // AGMARKNET | ENAM
+  recordedAt DateTime
+  ingestedAt DateTime @default(now())
+
+  @@index([crop, district, recordedAt])
+}
+
+model PortalSyncLog {
+  id       String   @id @default(uuid())
+  portal   String   // AGMARKNET | ENAM | WDRA | IMD | NABARD_SFAC | PAYMENT_GW
+  tier     Int      // 1 = live, 2 = simulated-live, 3 = stubbed
+  status   String   // SUCCESS | FAILED | STUBBED
+  message  String?
+  syncedAt DateTime @default(now())
+}
+
+model WarehouseReceipt {
+  id           String   @id @default(uuid())
+  partyId      String
+  party        Party    @relation(fields: [partyId], references: [id])
+  warehouseRef String
+  crop         String
+  quantityKg   Float
+  issuedAt     DateTime
+  status       String   // ACTIVE | REDEEMED
+}
+
+model DistrictDailyStats {
+  id                          String   @id @default(uuid())
+  district                    String
+  date                        DateTime
+  avgPricePerCrop             Json     // { "onion": 1850, "tomato": 900 }
+  totalLotsCreated            Int
+  totalLotsMatched            Int
+  totalLotsPooled             Int
+  activeStorageUtilizationPct Float?
+  activeTransportBookings     Int
+  pendingVerifications        Int
+  openDisputes                Int
+  resolvedDisputesWithinSla   Int
+
+  @@index([district, date])
+}
+
+model StateDailyStats {
+  id                        String   @id @default(uuid())
+  date                      DateTime
+  avgPricePerCropByDistrict Json     // { district: { crop: avgPrice } }
+  aggregationRateByDistrict Json
+  integrationHealthSummary  Json
+  escalatedItemsCount       Int
+
+  @@index([date])
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
