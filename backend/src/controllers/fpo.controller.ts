@@ -120,3 +120,27 @@ export const poolListings = async (req: Request, res: Response): Promise<void> =
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+/**
+ * GET /api/fpo/registry-lookup/:cinOrRegNo
+ * Lookup FPO registry metadata from NABARD/SFAC Stub Adapter
+ */
+export const lookupFpoRegistry = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { cinOrRegNo } = req.params;
+    if (!cinOrRegNo) {
+      res.status(400).json({ success: false, error: 'cinOrRegNo parameter is required' });
+      return;
+    }
+
+    const { nabardSfacAdapter } = await import('../adapters/nabard-sfac.adapter');
+    const fpoRecord = await nabardSfacAdapter.lookupFpo(cinOrRegNo);
+    res.status(200).json({
+      success: true,
+      fpoRecord,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+

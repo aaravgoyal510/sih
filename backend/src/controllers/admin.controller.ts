@@ -220,3 +220,65 @@ export const getPriceHeatmap = async (req: AuthenticatedRequest, res: Response):
     });
   }
 };
+
+/**
+ * GET /api/admin/portal-sync-logs
+ * Surfaces PortalSyncLog entries across ALL portals (AGMARKNET, PAYMENT_GW, NABARD_SFAC, etc.)
+ * for district/state admin visibility, per TechSpec.md §9.
+ */
+export const getPortalSyncLogs = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { portal, status, limit = '50', offset = '0' } = req.query;
+
+    const where: any = {};
+    if (portal && typeof portal === 'string') {
+      where.portal = portal.toUpperCase();
+    }
+    if (status && typeof status === 'string') {
+      where.status = status.toUpperCase();
+    }
+
+    const take = Math.min(parseInt(limit as string, 10) || 50, 100);
+    const skip = parseInt(offset as string, 10) || 0;
+
+    const [logs, totalCount] = await Promise.all([
+      prisma.portalSyncLog.findMany({
+        where,
+        orderBy: { syncedAt: 'desc' },
+        take,
+        skip,
+      }),
+      prisma.portalSyncLog.count({ where }),
+    ]);
+
+    // Group logs by portal to summarize sync status across integration tiers
+    const summaryByPortal = await prisma.portalSyncLog.groupBy({
+      by: ['portal', 'tier', 'status'],
+      _count: { id: true },
+      _max: { syncedAt: true },
+    });
+
+    res.status(200).json({
+      success: true,
+      totalCount,
+      limit: take,
+      offset: skip,
+      summaryByPortal: summaryByPortal.map((s) => ({
+        portal: s.portal,
+        tier: s.tier,
+        status: s.status,
+        logCount: s._count.id,
+        latestSyncAt: s._max.syncedAt,
+      })),
+      logs,
+    });
+  } catch (error: any) {
+    console.error('Error fetching portal sync logs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch portal sync logs',
+      error: error.message,
+    });
+  }
+};
+

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getStateDashboard, getPriceHeatmap } from '../controllers/admin.controller';
+import { getStateDashboard, getPriceHeatmap, getPortalSyncLogs } from '../controllers/admin.controller';
 import { authenticateToken, requireRoles } from '../middleware/auth.middleware';
 import { PartyRole } from '@prisma/client';
 
@@ -12,5 +12,7 @@ router.use(requireRoles(PartyRole.STATE_ADMIN, PartyRole.PLATFORM_ADMIN, PartyRo
 
 router.get('/admin/state-dashboard', getStateDashboard);
 router.get('/admin/price-heatmap', getPriceHeatmap);
+router.get('/admin/portal-sync-logs', getPortalSyncLogs);
 
 export default router;
+
