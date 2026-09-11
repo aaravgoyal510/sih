@@ -181,6 +181,8 @@ export default function FarmerOffers() {
       ) : data?.offers.length ? (
         data.offers.map((o: any) => {
           const b = o.booking,
+            shownPrice=b?.agreementSnapshot?.pricePerUnit??o.price,
+            shownQuantity=b?.agreementSnapshot?.quantity??o.requirement?.quantityNeeded??1,
             seller = o.listing.partyId === data.party.id,
             canAccept =
               (seller && o.status === "PENDING") ||
@@ -247,25 +249,25 @@ export default function FarmerOffers() {
                     )}
                   </h2>
                 </div>
-                <span className="ks-badge good">
+                <span className={`ks-badge ${o.status==='ACCEPTED'?'good':''}`}>
                   {c(statuses[o.status] || o.status)}
                 </span>
               </div>
               <div className="ks-trade-value">
                 <strong>
-                  {money(o.price)} / {c(unit)}
+                  {money(shownPrice)} / {c(unit)}
                 </strong>
                 <span>
-                  {o.requirement?.quantityNeeded || 1} {c(unit)} ·{" "}
+                  {shownQuantity} {c(unit)} ·{" "}
                   {c("Total value")}:{" "}
                   {money(
                     b?.totalAmount ??
-                      o.price * (o.requirement?.quantityNeeded || 1),
+                      shownPrice * shownQuantity,
                   )}
                 </span>
               </div>
               <ReadAloud
-                text={`${c("Buyer")}: ${o.requirement?.party?.name || ""}. ${c("Agreed price")}: ${money(o.price)} ${c(unit)}. ${c("Quantity")}: ${o.requirement?.quantityNeeded || 1}. ${c("Status")}: ${c(statuses[o.status] || o.status)}`}
+                text={`${c(seller?'Buyer':'Supplier')}: ${seller?o.requirement?.party?.name:o.listing.party.name}. ${c("Agreed price")}: ${money(shownPrice)} ${c(unit)}. ${c("Quantity")}: ${shownQuantity}. ${c("Status")}: ${c(statuses[o.status] || o.status)}`}
               />
               {b && (
                 <p className="ks-note">
@@ -279,7 +281,7 @@ export default function FarmerOffers() {
                 {buttons.map((type) => (
                   <button
                     key={type}
-                    className={`ks-button ${["REJECT", "DISPUTE", "RATING"].includes(type) ? "secondary" : ""}`}
+                    className={`ks-button ${["REJECT", "DISPUTE", "RATING", "CANCEL"].includes(type) ? "secondary" : ""}`}
                     disabled={busy}
                     onClick={() => {
                       setError("");
