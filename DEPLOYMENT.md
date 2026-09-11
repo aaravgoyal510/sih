@@ -1,0 +1,29 @@
+# Frontend ↔ backend connectivity
+
+Browser requests now use `/api/backend` on the frontend's own origin. Next.js rewrites them to the configured Express backend, forwarding paths, query strings, methods and authorization headers. No second browser-facing tunnel or browser localhost URL is required.
+
+## Vercel frontend + Render backend
+
+1. Push the connectivity changes and deploy the frontend from root `frontend`.
+2. In Vercel Environment Variables, set **BACKEND_URL** to your Render origin, e.g. `https://sih-1-h70e.onrender.com`, for Production and any Preview environment you use.
+3. Remove obsolete NEXT_PUBLIC_API_URL / NEXT_PUBLIC_BACKEND_URL values to avoid confusion. They remain compatibility fallbacks, in that order of priority: BACKEND_URL → NEXT_PUBLIC_BACKEND_URL → NEXT_PUBLIC_API_URL.
+4. Redeploy after changing the URL: rewrites are generated at build time. Changing an env value without redeploying does not update an existing deployment.
+5. Open `https://YOUR-FRONTEND/api/backend/health`. Expected JSON: `status: ok`, `service: KrishiSetu API`. This tests the actual browser-facing path.
+
+No database/JWT/API-key secrets belong in frontend settings. BACKEND_URL is a service address, not a credential. Backend credentials remain on Render. Vercel builds fail with an actionable message if the backend is unset, HTTP-only or localhost; local production builds remain supported.
+
+## Port 3000 tunnel
+
+Run the frontend on 3000 and API on 4000. Without a frontend backend-URL override, Next proxies to `http://127.0.0.1:4000` from the local machine. Tunnel **only port 3000** and open `https://YOUR-TUNNEL/api/backend/health`. The remote browser never calls its own localhost:4000. If frontend env already points to Render, the tunnel uses Render instead; use BACKEND_URL=http://127.0.0.1:4000 in frontend/.env.local for a local API, then restart Next.
+
+## Diagnosing failures
+
+- Direct Render `/health` fails: check service startup, environment and Render logs. The proxy cannot repair a crashed backend.
+- Direct Render health works but frontend proxy fails: check Vercel BACKEND_URL, redeploy, and verify the configured backend is not the frontend itself.
+- Health works but workspace returns 401/403: connectivity is working; investigate sign-in/authorization. Production demo access requires DEMO_MODE=true on a demo-only database; never enable it for real user data.
+- 502/503/504 or slow first load: inspect platform logs/timeouts. Render free services may sleep and take roughly a minute to restart. The banner now waits up to 70 seconds, avoids overlapping checks and validates the API JSON rather than any HTTP 200. Hosting proxy limits can still end a request earlier; retry after startup.
+- A timed-out transaction is not proof it failed. Refresh its status before submitting again; do not automatically retry mutations.
+
+The previous banner aborted at three seconds and instructed every deployed user to start a local server. The new banner distinguishes connecting, invalid health responses and unavailable backend, with an actual diagnostic link.
+
+References: [Next external rewrites](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites), [Render free-service startup](https://render.com/docs/free).

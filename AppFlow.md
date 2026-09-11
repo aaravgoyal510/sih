@@ -1,100 +1,47 @@
-# AppFlow.md — Market Linkage & Farm Services Platform
+# KrishiSetu — Farmer Net-Realization & Assured Market Decision Platform
+## Proposed decision-first flows
 
-## 1. Farmer Flow (mobile, 4 top-level actions, no sidebar)
-```
-Login/OTP -> Home
-Home shows exactly 4 big buttons:
-  [ Sell my crop ]  [ Check prices near me ]  [ Get help / Services ]  [ My offers & payments ]
+These are target flows, not a claim that the recommendation service is implemented. Current routes remain documented in README.md.
 
-[Sell my crop]
-  -> Select crop -> quantity -> quality grade (photo optional)
-  -> System shows: "Best net value nearby: Rs.X at [Buyer/Market Y]" + sale-window nudge
-  -> If quantity < buyer minimum -> contextual prompt: "Join pool with N nearby
-     farmers to meet minimum? [Yes/No]"
-  -> Confirm -> lot goes live to matched buyers
+## 1. Farmer: where, when and how to sell
 
-[Check prices near me]
-  -> District + crop -> price trend chart (single line)
-  -> Nearby markets/buyers ranked by net realization
-  -> Weather/anomaly flag shown only if relevant
+Four proposed entry points: Sell my crop; Compare take-home value; Storage & transport; My offers & payments. No farmer sidebar.
 
-[Get help / Services]  (resource-type grid, big icon tiles, no emoji)
-  [ Storage ] [ Transport ] [ Equipment ]
-  [ Labor ]   [ Buy/Sell used gear ] [ Group buying & contracts ]
-  -> Each tile opens the SAME generic flow:
-     Browse/Search matches -> view provider (rating + credibility) -> request/book
-     -> OR List my own (e.g. sell used tractor) -> same listing form template,
-        fields driven by resourceType schema
-  -> Booking confirmation -> same payment tracker used everywhere else
+1. Capture crop, saleable quantity, grade, location, harvest timing and cash deadline.
+2. Collect valid buyer/market options and farmer-borne costs. Ask for missing inputs; never silently assume zero.
+3. Compare feasible options using RecommendationCard: WHAT → WHY (net delta, baseline and visible buyer trust) → RISK (basis) → WHAT IF I WAIT (horizon, upside/downside and named factor).
+4. Inspect cost breakdown, change assumptions or choose another eligible option.
+5. If below buyer minimum, show a contextual pool option with member-level net benefit. If waiting is feasible, show storage costs and risks in the same card.
+6. Choose → revalidate terms/availability/trust → send or accept an offer → existing agreement/booking.
+7. Track logistics and labelled simulated payment; capture actual costs/receipts only when evidenced.
+8. Compare expected and realized proceeds; rate or dispute with audited review.
 
-[My offers & payments]
-  -> List of active lots/bookings (any resource type, unified list) -> tap one
-     -> see offers (accept / counter / reject)
-  -> On accept -> digital agreement auto-generated -> payment tracker
-     (Pending -> Escrowed -> Released)
-  -> Rate the counterparty after completion
-  -> [Raise a dispute] available on any active/completed booking, tagged by category
+On expiry, request refresh before proceeding. During an outage, show dated evidence and “More information needed”; do not offer stale advice as current. Offline mode shows saved observations only, without transaction actions.
 
-Alternate channel: WhatsApp/SMS/voice bot mirrors the same 4 top-level intents
-via conversational prompts, hitting the same backend endpoints.
-```
+## 2. Prices are evidence, not the destination
 
-## 2. FPO Admin Flow
-```
-Login -> FPO Dashboard (multi-crop, multi-member)
-  -> Pool member lots below buyer minimums -> [Create pooled lot]
-  -> Pool member input-purchase requests -> [Create group-buy order]
-  -> Manage members (add/remove/verify)
-  -> Respond to buyer RFQs / contract-farming offers on behalf of the pool
-  -> View consolidated payment/settlement status across members
-```
+Market observations → source/date/grade-basis disclosure → enter lot and costs → net comparison cards. Observation charts are historical. No waiting forecast without a validated model or an explicitly hypothetical scenario.
 
-## 3. Buyer Flow
-```
-Login/KYC -> Buyer Dashboard
-  -> [Post a requirement] (crop, qty, quality spec, timeline, budget)
-     OR [Post a contract-farming offer] (pre-season price/quality commitment)
-  -> Matched lots/FPOs ranked with credibility score + history
-  -> Send offer -> negotiate -> accept -> agreement generated
-  -> Track logistics (own transport booking or matched Transport Operator)
-  -> Track payment release -> rate counterparty
-```
+## 3. Buyer and trust
 
-## 4. Provider Flows (Storage / Transport / Equipment / Labor / Input Supplier)
-```
-Signup -> Role selection -> Document upload (role-specific, see PRD 4.7)
-  -> Verification queued (district admin) -> APPROVED/REJECTED notification
-On approval:
-  -> [Create listing] (capacity/availability/package, using role-specific form)
-  -> Receive matched requirements -> respond with offer
-  -> Manage bookings -> update fulfillment status -> track payment
-  -> Respond to ratings/disputes
-```
+Buyer profile → TrustScoreBadge and full metric card → demand/grade/quantity/deadline → candidate lots → offer → negotiation → logistics → simulated payment → verified-transaction rating.
 
-## 5. District Admin Flow
-```
-Login -> District Console
-  -> Verification queue (SLA countdown visible) -> approve/reject/request-info
-  -> Dispute queue (district-scoped) -> review evidence -> resolve or escalate
-  -> Local data feed health (PortalSyncLog filtered to district)
-  -> Provider directory + utilization stats
-  -> Aggregation view (pooled lots/input orders originating in-district)
-```
+Farmer-visible buyer offers must include a freshly validated RecommendationCard before the sell decision. Buyer sourcing may later show a farmer-specific trust score based on fulfillment, clearly distinguished from buyer payment reliability.
 
-## 6. State Admin Flow
-```
-Login -> State Console
-  -> Statewide price heatmap (crop-wise, district-wise, deviation from state avg)
-  -> Escalated verifications/disputes queue
-  -> Scheme participation analytics (if govt-scheme feature enabled)
-  -> Cross-district logistics gap view (surplus vs. transport-provider density)
-  -> Statewide integration health (Tier 1/2/3 status)
-```
+## 4. FPO
 
-## 7. Cross-cutting notification triggers
-- Price threshold crossed for a watched crop -> push/SMS
-- New offer/booking request received -> push/SMS/WhatsApp
-- Payment or booking status change -> push/SMS
-- Verification status change -> push/SMS
-- Dispute status change (including escalation) -> push
-- SLA breach on verification/dispute -> auto-escalation notification to next admin tier
+Authorized member lots → compatible pool → buyer feasibility → shared costs and allocation → each member's net comparison → member consent → offer and execution → member-level settlement reconciliation. Existing pooling works; cost allocation, recommendation and consent expansion are proposed.
+
+## 5. Infrastructure providers
+
+Existing role verification → approved capacity/availability → dated storage or transport quote → contextual decision option → booking → fulfillment. Equipment, labor, inputs, used equipment and contracts retain existing access while their expansion is deferred; do not delete routes without approval.
+
+## 6. Governance
+
+District: scoped verification and dispute evidence → reasoned outcome → audited trust penalty or reversal → escalation when required.
+State: escalations now; later aggregate net outcomes, payment delays and infrastructure gaps with privacy thresholds.
+Platform: operational safety and integration health. No advertising placements in decision ranking.
+
+## 7. Assisted channels and notifications
+
+Future consent-based voice/SMS/WhatsApp should communicate the same four fields, provenance and expiry, not a separate price-tip engine. Trigger on changed offers, expiring quotes, payment milestones and reviewed risk changes. Actual provider delivery is not yet integrated. Full EN/HI/MR flows require localization acceptance.

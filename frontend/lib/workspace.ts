@@ -18,10 +18,11 @@ async function performRequest(path: string, method: string, body: unknown, token
   const response = await fetch(`${API_URL}/api/workspace${path}`, {
     cache: 'no-store',
     method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    // Let a slow hosted-database transaction finish before the UI times out.
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(method === 'GET' ? 30000 : 90000),
+    // Reads must allow a sleeping host to start; never auto-retry mutations.
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(method === 'GET' ? 75000 : 90000),
   });
-  const data = await response.json();
+  const data = await response.json().catch(() => null);
+  if (!data) throw new Error(`API gateway returned a non-JSON response (HTTP ${response.status}). Check backend availability and frontend BACKEND_URL. If you submitted a change, refresh its status before trying again.`);
   if (!response.ok || !data.success) throw new Error(data.error || 'Request failed. Please try again.');
   return data;
 }

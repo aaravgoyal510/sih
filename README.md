@@ -1,6 +1,8 @@
-# KrishiSetu — SIH problem statement 26132
+# KrishiSetu — Farmer Net-Realization & Assured Market Decision Platform
 
-A Maharashtra farmer market-linkage and farm-services evaluation application. Compare mandi observations, publish crops, negotiate with buyers, book services and raise grievances. FPO and government workspaces share a database-backed transaction engine.
+For PS 26132, KrishiSetu asks: “Where, when, and how should I sell my crop to maximize what actually reaches my pocket?” The target product compares expected net proceeds after quantity/quality, transport, storage, timing and buyer reliability, then supports execution through offers, logistics and accountable transactions.
+
+The current evaluation build supplies the transaction ecosystem and sourced-price infrastructure. The strategic pivot specifies a net-realization engine, explainable recommendations and visible KrishiTrust—not a claim that those backend services have shipped. See [PRD.md](PRD.md), [PIVOT_REVIEW.md](PIVOT_REVIEW.md) and the synthetic component preview at `/preview/decision`. “Assured” does not mean guaranteed returns or payments. Marketplace advertising is deferred, including monetization; existing code/data remain untouched.
 
 This is a local evaluation build, **not a production payment or government-verification service**. Sample entities are demonstration identities, not endorsed partners. No certification or measured farmer-income improvement is implied.
 
@@ -17,7 +19,7 @@ Node.js 20+ and the configured PostgreSQL/Supabase database are required. Docker
 
 Backend loads `backend/.env`, then the repository `.env` without overriding existing values. Keep credentials out of git. Your root `.env` is supported; copying secrets is unnecessary.
 
-Required: `DATABASE_URL`, `DIRECT_URL` for the Prisma datasource, and a strong `JWT_SECRET`. Optional: `PORT` (4000), `AGMARKNET_API_KEY`, `AGMARKNET_RESOURCE_ID`. Frontend: `NEXT_PUBLIC_BACKEND_URL` in `frontend/.env.local` (default http://localhost:4000).
+Required: `DATABASE_URL`, `DIRECT_URL` for the Prisma datasource, and a strong `JWT_SECRET`. Optional: `PORT` (4000), `AGMARKNET_API_KEY`, `AGMARKNET_RESOURCE_ID`. Frontend server: `BACKEND_URL` in `frontend/.env.local` or Vercel environment settings. Local default is http://127.0.0.1:4000; Vercel requires the Render HTTPS origin and a redeploy. Browser requests use the same-origin `/api/backend` proxy, so tunneling port 3000 does not require exposing port 4000. Legacy public URL variables remain fallback inputs. See [DEPLOYMENT.md](DEPLOYMENT.md) for connection troubleshooting.
 
 For Supabase shared-pooler URLs, runtime normalizes port 5432 to transaction-pooler port 6543 with `pgbouncer=true` and defaults to three connections per process. `DIRECT_URL` and your `.env` remain unchanged. This avoids the observed 15-client session-pool exhaustion; set `SUPABASE_SESSION_MODE=true` only if session pooling is intentionally required. See [Supabase connection documentation](https://supabase.com/docs/guides/database/connecting-to-postgres).
 
@@ -80,4 +82,4 @@ A service worker serves an offline page with observations previously saved on th
 
 See [DELIVERY.md](DELIVERY.md) for evidence, walkthrough and remaining deployment work. [PRD](PRD.md), [TechSpec](TechSpec.md), [AppFlow](AppFlow.md), [Design](Design.md), [Schema](Schema.md) and [ImplementationPlan](ImplementationPlan.md) describe the broader intended product, not proof that every roadmap item has shipped.
 
-Live payments, SMS/WhatsApp delivery, government certificate checks, media/document upload, advanced forecasting, geographic choropleth and production operations require further integration. The legacy FasalRakshak page remains outside the core PS 26132 marketplace flow.
+Live payments, SMS/WhatsApp delivery, government certificate checks, media/document upload, advanced forecasting, geographic choropleth and production operations require further integration. The legacy FasalRakshak page remains outside the core PS 26132 sell-decision flow.

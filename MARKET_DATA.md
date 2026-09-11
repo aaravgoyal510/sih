@@ -1,5 +1,7 @@
 # Live market-data flow
 
+In **KrishiSetu — Farmer Net-Realization & Assured Market Decision Platform**, these observations are evidence inputs, not the final sell decision. The proposed engine must combine them with lot-specific quality, feasible quotes, costs, timing and trust; this existing feed does not itself produce Recommendation or TrustScore records. See [PRD.md](PRD.md).
+
 Market prices now fetch the government data.gov.in Agmarknet resource on page access, not just database seed rows. Source: [official daily mandi-price resource](https://www.data.gov.in/resource/current-daily-price-various-commodities-various-markets-mandi).
 
 ## Refresh and provenance

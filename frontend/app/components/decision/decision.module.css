@@ -1,0 +1,24 @@
+.card { max-width: 760px; margin: 24px auto; overflow-wrap: anywhere; }
+.card .field { border-top: 1px solid var(--ks-line); padding: 22px 0; }
+.card .field h2 { font-size: 12px; letter-spacing: .12em; color: var(--ks-green); margin-bottom: 10px; }
+.field p { margin: 8px 0; }
+.action { font-size: clamp(23px, 4vw, 32px); font-weight: 650; }
+.delta { font-size: 22px; font-weight: 650; }
+.notice { background: #fff4d9; color: #684a0c; border-radius: 8px; padding: 12px; font-size: 13px; }
+.risk { font-weight: 700; color: #805100; }
+.field ul { padding-left: 22px; }
+.wait { font-size: 18px; font-weight: 600; }
+.trust { margin-top: 20px; border: 1px solid var(--ks-line); border-radius: 12px; padding: 18px; background: var(--ks-paper); }
+.trustTitle { font-size: 15px; font-weight: 650; }
+.badge { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 7px; padding: 7px 10px; border-radius: 7px; font-size: 12px; font-weight: 700; }
+.HIGH_TRUST { background: #dceedd; color: #215533; }
+.MEDIUM_TRUST { background: #fff0cc; color: #704d00; }
+.LOW_TRUST { background: #f8e2df; color: #843b32; }
+.metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin: 20px 0; }
+.metrics dt { font-size: 12px; color: #4d6257; }
+.metrics dd { font-size: 17px; font-weight: 600; }
+.card summary, .trust summary { min-height: 44px; padding: 10px 0; cursor: pointer; color: var(--ks-green); font-weight: 600; }
+.card summary:focus-visible, .trust summary:focus-visible { outline: 3px solid #60a887; outline-offset: 3px; }
+.costs div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 5px 0; }
+.meta { font-size: 12px; color: #4d6257; border-top: 1px solid var(--ks-line); padding-top: 18px; }
+@media (max-width: 360px) { .metrics { grid-template-columns: 1fr; } .trust { padding: 12px; } }

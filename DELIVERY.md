@@ -1,5 +1,7 @@
 # PS 26132 — local delivery and evaluation guide
 
+Historical implementation evidence: the current product direction is **KrishiSetu — Farmer Net-Realization & Assured Market Decision Platform**. This guide records the earlier transaction build, not delivery of the new recommendation/trust engine. See [PIVOT_REVIEW.md](PIVOT_REVIEW.md) for the pivot and scaffold status.
+
 ## What changed
 
 The repository contained disconnected demo pages, local-only offer actions, missing role surfaces and backend configuration/order issues. The current delivery replaces the main marketplace portals with one authenticated, database-backed workspace and a responsive cream/forest-green design system.
@@ -66,7 +68,7 @@ This delivery covers the core local marketplace demonstration, not every integra
 - Evidence uses document URLs/references. File upload, malware scanning and access-controlled document storage are not implemented.
 - Farmer home has EN/HI/MR translations. Extended workspace and offline copy are currently predominantly English.
 - The state surface uses a 36-district color grid, not a geographic choropleth. Price signals are descriptive history, not predictive ML.
-- Marketplace ads have guarded API endpoints but no complete campaign-management UI. Ad billing is not integrated.
+- Legacy marketplace ads have guarded API endpoints but no complete campaign-management UI or billing. Advertising is now deferred and excluded from current scope/monetization; code/data are retained pending approval.
 - Inventory is reserved at whole-listing granularity on acceptance; partial remaining inventory is not automatically split into a new listing.
 - Production requires durable auth/session controls, distributed OTP/rate limiting, deployment/monitoring, backups, privacy review, accessibility/localization review and independent security testing. Demo access must be disabled for real-user deployments.
 - Legacy FasalRakshak remains optional and is not included in the core acceptance suite.

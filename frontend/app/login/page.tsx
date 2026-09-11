@@ -41,7 +41,7 @@ export default function LoginPage() {
         setError(data.error || 'Failed to request OTP');
       }
     } catch (err: any) {
-      setError('Cannot connect to backend server. Make sure API is running on port 4000.');
+      setError('Could not reach the API. It may be starting up; retry shortly. If this continues, check the API health link and frontend backend-URL configuration.');
     } finally {
       setLoading(false);
     }
