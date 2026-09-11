@@ -88,3 +88,4 @@ Live payments, SMS/WhatsApp delivery, government certificate checks, media/docum
 Live payments, SMS/WhatsApp delivery, government certificate checks, media/document upload, advanced forecasting, geographic choropleth and production operations require further integration. The legacy FasalRakshak page remains outside the core PS 26132 marketplace flow.
 ver
 >>>>>>> 50cfebe82c7c68bad1fecf909afe1b036f9c3591
+ver
