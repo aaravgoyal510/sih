@@ -1,4 +1,4 @@
-/** Proposed API contracts. All money is safe-integer paise; fixtures are synthetic. */
+/** Decision API contracts. All money is safe-integer paise; fixtures are synthetic. */
 export type TrustScore = {
   partyId: string;
   role: 'BUYER' | 'FARMER';
@@ -30,12 +30,13 @@ export type WaitScenario =
 export type Recommendation = {
   id: string;
   synthetic: boolean;
+  persisted?: boolean;
   createdAt: string;
   validUntil: string;
   explanationVersion: string;
-  what: { action: string; quantityKg: number; timing: string };
+  what: { action: string; counterpartyName?:string; quantityKg: number; timing: string };
   why: {
-    expectedNetPaise: number; baselineNetPaise: number; deltaPaise: number;
+    expectedNetPaise: number; baselineNetPaise: number|null; deltaPaise: number|null;
     baselineLabel: string; grossPaise: number;
     costs: { label: string; amountPaise: number }[];
     basis: string;

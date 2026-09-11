@@ -1,11 +1,11 @@
 # KrishiSetu — Farmer Net-Realization & Assured Market Decision Platform
 ## Proposed decision-first flows
 
-These are target flows, not a claim that the recommendation service is implemented. Current routes remain documented in README.md.
+These flows distinguish the implemented evaluation path from future verified outcomes. Guided selling, costed buyer recommendations, saved decisions, trust, agreements and operational notifications are wired to the API. Forecasting, per-member settlement and realized-income attribution remain targets. Current routes are documented in README.md.
 
 ## 1. Farmer: where, when and how to sell
 
-Four proposed entry points: Sell my crop; Compare take-home value; Storage & transport; My offers & payments. No farmer sidebar.
+Four primary entry points: Sell my crop; Market prices and take-home comparison; Services; My offers & payments. No farmer sidebar. Services retains existing provider access and links to consent-based FPO membership; saved decisions and account checks are secondary links.
 
 1. Capture crop, saleable quantity, grade, location, harvest timing and cash deadline.
 2. Collect valid buyer/market options and farmer-borne costs. Ask for missing inputs; never silently assume zero.
@@ -16,7 +16,7 @@ Four proposed entry points: Sell my crop; Compare take-home value; Storage & tra
 7. Track logistics and labelled simulated payment; capture actual costs/receipts only when evidenced.
 8. Compare expected and realized proceeds; rate or dispute with audited review.
 
-On expiry, request refresh before proceeding. During an outage, show dated evidence and “More information needed”; do not offer stale advice as current. Offline mode shows saved observations only, without transaction actions.
+On expiry, request refresh before proceeding. During an outage, show dated evidence and “More information needed”; do not offer stale advice as current. Offline mode shows saved observations and the current account's crop draft, without transaction actions or background submission.
 
 ## 2. Prices are evidence, not the destination
 
@@ -44,4 +44,4 @@ Platform: operational safety and integration health. No advertising placements i
 
 ## 7. Assisted channels and notifications
 
-Future consent-based voice/SMS/WhatsApp should communicate the same four fields, provenance and expiry, not a separate price-tip engine. Trigger on changed offers, expiring quotes, payment milestones and reviewed risk changes. Actual provider delivery is not yet integrated. Full EN/HI/MR flows require localization acceptance.
+User-initiated browser voice capture and read-aloud support core EN/HI/MR farmer tasks, with permission notices and typing fallback. Durable in-app updates record new offers, booking transitions, logistics and reviews; read state belongs to the account. Consent-based SMS/WhatsApp/push delivery, quote-expiry notifications and real-device multilingual acceptance remain future work. No historical events are invented or backfilled.

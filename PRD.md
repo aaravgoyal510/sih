@@ -55,7 +55,7 @@ Fixed field order:
 3. RISK — Low / Medium / High, with human-readable bases, evidence age and missing inputs.
 4. WHAT IF I WAIT — horizon, expected change and upside/downside relative to selling now, plus named risk factor. Unknown projections explicitly say unavailable.
 
-Backend fields are structured `what`, `why`, `risk`, `what_if_wait`, with farmer/listing/buyer references, evidence snapshot, validity time and explanation version. See [Schema.md](Schema.md) and the proposed Prisma fragment. Monetary API values use integer paise.
+Backend fields are structured `what`, `why`, `risk`, `what_if_wait`, with farmer/listing/buyer references, evidence snapshot, validity time and explanation version. See [Schema.md](Schema.md) and the active [Prisma schema](backend/prisma/schema.prisma). Monetary API values use integer paise; baseline and delta remain unknown when no comparable baseline is entered.
 
 Required synthetic acceptance fixture:
 
@@ -125,7 +125,7 @@ Feature Justification: makes “how should I sell?” include the likelihood of 
 | Marketplace advertising | Excluded from current feature and monetization scope | Does not answer the driving question and can distort rankings. |
 | FasalRakshak/agronomy and scheme discovery | Outside this release; retain legacy code pending review | No established direct contribution to the sell decision. |
 
-Four proposed farmer entry points: Sell my crop; Compare take-home value; Storage & transport; My offers & payments. Changing current labels/services discoverability requires the product decision recorded in [PIVOT_REVIEW.md](PIVOT_REVIEW.md).
+Four implemented primary farmer entry points: Sell my crop; Market prices and take-home comparison; Services; My offers & payments. Services retains storage, transport and other existing providers, with contextual access to FPO membership. Saved decisions and account verification are secondary links. This preserves access while reducing the first-screen choices.
 
 ## 7. Phase focus and milestones
 
@@ -160,7 +160,7 @@ No numeric income-uplift promise before a measured pilot. Analytics must separat
 
 ## 9. Release boundaries, dependencies and risks
 
-Current baseline: authenticated multi-role transactions, simulated payments, basic net calculator, price provenance, FPO pooling and dispute penalties. The persisted recommendation engine, visible trust model, timing forecasts and outcome attribution are proposed, not shipped. Component scaffolds are synthetic previews only.
+Current evaluation build: authenticated multi-role transactions, password registration, simulated payments, costed market comparisons, price provenance, FPO pooling, dispute penalties, persisted budget-based recommendations, visible provisional buyer trust, immutable acceptance snapshots, booking history and durable in-app notifications. Core farmer assistance includes EN/HI/MR and browser voice with typing fallback. Timing forecasts, verified realized-income attribution, member-level pooled settlement and production integrations remain unshipped. `/preview/decision` remains a synthetic fixture, separate from authenticated saved decisions. Recommendations are indicative estimates, not guaranteed buyer quotes.
 
 Agmarknet refresh is implemented but successful live ingestion was not verified during the last checks; see [MARKET_DATA.md](MARKET_DATA.md). e-NAM, IMD, WDRA and registry access are not assumed production integrations. Missing feeds must not be replaced with plausible-looking samples.
 

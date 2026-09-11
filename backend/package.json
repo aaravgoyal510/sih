@@ -1,28 +1,33 @@
 {
   "name": "krishisetu-backend",
   "version": "1.0.0",
-  "description": "Backend API for KrishiSetu Linkage & Farm Services Platform",
+  "description": "KrishiSetu farmer net-realization and assured market decision API",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate && tsc --noEmit",
+    "build": "prisma generate && npm run build:server",
+    "build:server": "tsc --noEmit false --outDir dist --rootDir src",
     "worker": "tsx src/worker.ts",
     "test:workspace": "tsx src/tests/workspace.integration.ts",
     "test:market": "tsx src/tests/live-market.test.ts",
     "seed:opportunities": "tsx src/scripts/ensure-demo.ts && tsx src/scripts/seed-demo-opportunities.ts",
-    "start": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "start:worker": "node dist/worker.js",
     "prisma:generate": "prisma generate",
     "prisma:db:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",
     "sync:agmarknet": "tsx src/scripts/sync-agmarknet.ts",
     "job:aggregate-daily-stats": "tsx src/scripts/aggregate-daily-stats.ts",
     "job:escalate-sla": "tsx src/scripts/escalate-sla.ts",
-    "test:auth": "tsx src/tests/auth.test.ts"
+    "test:auth": "tsx src/tests/assisted.integration.ts",
+    "test:unit": "tsx src/tests/live-market.test.ts && tsx src/tests/trust-score.test.ts && tsx src/tests/recommendation.test.ts && tsx src/tests/matching-feasibility.test.ts",
+    "db:upgrade": "tsx src/scripts/product-upgrade.ts --apply",
+    "db:check": "tsx src/scripts/product-upgrade.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "^6.4.1",
+    "@prisma/adapter-pg": "6.19.3",
+    "@prisma/client": "6.19.3",
     "@types/pg": "^8.23.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -32,12 +37,16 @@
     "pg-mem": "^3.0.14",
     "zod": "^3.24.2"
   },
+  "overrides": {
+    "qs": "6.16.0",
+    "@prisma/config": {"deepmerge-ts": "8.0.2"}
+  },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.25",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.10",
-    "prisma": "^6.4.1",
+    "prisma": "6.19.3",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"

@@ -1,4 +1,6 @@
-// PROPOSAL ONLY: not loaded by the current Prisma schema. No migration applied.
+// Historical design fragment. The active ../schema.prisma now implements these
+// entities with nullable unknown baselines and additional operational event models.
+// Use the active schema and migrations, not this fragment, for deployment.
 // Merge these declarations with schema.prisma and the Party backrelations in Schema.md.
 // JSON payload contracts: frontend/lib/decision-platform.ts; enforce with server Zod.
 

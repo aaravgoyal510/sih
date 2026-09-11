@@ -96,6 +96,7 @@ export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
     }
 
     const party = user.party;
+    if(user.passwordHash){res.status(403).json({success:false,error:'This account requires password sign-in. Development OTP cannot access password-protected accounts.'});return;}
     if (!party) {
       res.status(500).json({ success: false, error: 'Party record missing for user' });
       return;

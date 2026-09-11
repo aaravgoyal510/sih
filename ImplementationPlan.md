@@ -5,7 +5,7 @@ Phase focus: farmer income → transparency → trust → FPO aggregation → in
 
 The old “nothing is cut” policy and equal-priority generic-marketplace tiers are superseded. Existing transaction/role infrastructure is retained; new scope must answer the driving sell-decision question.
 
-Current baseline: see DELIVERY.md and MARKET_DATA.md. This pivot delivers documentation, model proposals and synthetic UI scaffolds. It does not ship persistent recommendations, calibrated forecasts, a production trust engine or live settlement.
+Current evaluation baseline now includes persistent indicative-budget recommendations, visible provisional buyer trust, saved accepted agreements, operational history, durable notifications and guided multilingual farmer tasks. The initial pivot was documentation/scaffolds; subsequent implementation is described in README.md and the active schema. Calibrated forecasts, verified income attribution and live settlement remain unshipped. The gates below remain acceptance targets, not an assertion that every phase is complete.
 
 ## 2. Ordered milestones and gates
 
@@ -30,11 +30,11 @@ Safety/ownership/suspension checks apply from phase 1, even though visible scori
 6. Run trust in shadow mode beside CredibilityScore; compare decisions and appeal effects.
 7. Integrate recommendation APIs/UI and feature-gated rollout; preserve old history and rollback path.
 
-No migration or backfill is part of the current scaffold delivery.
+The additive decision-record migration has now been applied to the configured evaluation database and generated client. No historical payment, trust or event data was fabricated. See Schema.md for the repeatable upgrade command and migration-history caveat. Remaining evidence/policy steps above still apply before a production trust cutover.
 
 ## 4. Explicitly deferred legacy work
 
-- Former Tier C “Marketplace ads” and build-order step 16 “Marketplace ads placement”: deferred, removed from current milestones and revenue assumptions. Existing table/endpoints preserved pending a separate removal decision.
+- Former Tier C “Marketplace ads” and build-order step 16 “Marketplace ads placement”: deferred, removed from current milestones and revenue assumptions. Endpoints are disabled; code/table retained pending a separate deletion decision.
 - No explicit ad-revenue-funded milestone or revenue forecast was found. If an external budget relies on ads, it needs replacement funding before commitment.
 - Labor/used equipment/input expansion, contract-farming expansion, scheme discovery and FasalRakshak: preserve current code, require direct net-realization justification before new investment.
 - Real payments, government verification, weather forecasts and assisted-channel delivery need separate integration and acceptance, not sample data presented as live.

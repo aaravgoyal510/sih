@@ -11,7 +11,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     offlineMode: 'Offline Mode',
     showingCachedData: 'Showing cached data from',
     ago: 'ago',
-    syncOnReconnect: 'Your request will sync automatically when reconnected.',
+    syncOnReconnect: 'Your draft stays on this device. Review and submit it yourself after reconnecting.',
     connectivityWarning: 'Network offline. Showing saved data.',
 
     // Home 4-action Grid
@@ -83,7 +83,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     offlineMode: 'ऑफ़लाइन मोड',
     showingCachedData: 'कैश किया गया डेटा दिखाया जा रहा है:',
     ago: 'पहले',
-    syncOnReconnect: 'कनेक्ट होने पर आपका अनुरोध स्वतः सिंक हो जाएगा।',
+    syncOnReconnect: 'मसौदा इस डिवाइस पर रहेगा। कनेक्शन आने पर जाँचकर खुद भेजें।',
     connectivityWarning: 'नेटवर्क ऑफ़लाइन है। सहेजा गया डेटा दिख रहा है।',
 
     // Home 4-action Grid
@@ -155,7 +155,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     offlineMode: 'ऑफलाईन मोड',
     showingCachedData: 'कॅश केलेला डेटा दाखवला जात आहे:',
     ago: 'पूर्वी',
-    syncOnReconnect: 'इंटरनेट सुरू झाल्यावर तुमची विनंती आपोआप सिंक होईल.',
+    syncOnReconnect: 'मसुदा या डिव्हाइसवर राहील. इंटरनेट आल्यावर तपासून स्वतः पाठवा.',
     connectivityWarning: 'नेटवर्क ऑफलाईन आहे. जतन केलेला डेटा दाखवला जात आहे.',
 
     // Home 4-action Grid

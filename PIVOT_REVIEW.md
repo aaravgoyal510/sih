@@ -1,6 +1,8 @@
 # Strategic pivot review — KrishiSetu
 
-12 September 2026 · Documentation and component-scaffold delivery
+12 September 2026 · Historical documentation and component-scaffold delivery
+
+This records the initial pivot's scope and evidence. Subsequent authorized implementation has added real persisted models and API/UI wiring; consult README.md, Schema.md and the active code for current status. The initial delivery claims below are retained as history, not current deployment instructions.
 
 ## Outcome and boundaries
 

@@ -1,13 +1,13 @@
 # KrishiSetu — Farmer Net-Realization & Assured Market Decision Platform
 ## Technical architecture: current baseline and proposed decision layer
 
-The product answers: “Where, when, and how should I sell my crop to maximize what actually reaches my pocket?” PRD.md governs scope; backend/prisma/schema.prisma is the current database truth. Proposed models are not deployed.
+The product answers: “Where, when, and how should I sell my crop to maximize what actually reaches my pocket?” PRD.md governs scope; backend/prisma/schema.prisma is database truth. The configured evaluation database now stores recommendations, trust snapshots, notifications and booking events; this is not proof of production deployment or calibrated forecasting.
 
 ## 1. Existing implementation
 
 Next.js/React frontend, Express/TypeScript API, Prisma/PostgreSQL and scheduled worker. Role workspaces share Listing, Requirement, Offer, Booking, Rating, Verification and Dispute. Resource-specific JSON attributes use the existing Zod registry in backend/src/schemas/resource-attributes.schema.ts. Matching identifies candidate fit; it is not an expected-net engine.
 
-JWT-authenticated workspace routes enforce ownership and jurisdiction. Development OTP/demo sign-in are evaluation facilities, not production SMS/session security. Payments are simulated. Offline access is limited to saved verified-feed observations; private workspaces and mutations are not queued. README.md and DELIVERY.md contain operational evidence.
+JWT-authenticated workspace routes enforce ownership and jurisdiction. Password registration uses salted scrypt and excludes privileged roles. Development OTP/demo sign-in are explicitly gated evaluation facilities; phone ownership and recovery still require delivery integration. Payments are simulated. Offline access shows saved feed observations and the current account's crop draft; private API responses and mutations are not queued. README.md describes runtime boundaries.
 
 ## 2. Proposed architecture
 
@@ -28,13 +28,13 @@ Recommendation JSON fields follow frontend/lib/decision-platform.ts: what, why, 
 
 Risk policy proposal: Low only with complete fresh critical evidence and reliable feasible execution; Medium for bounded timing/logistics uncertainty; High for material uncertainty with a still-feasible option. Missing critical feasibility evidence means no actionable recommendation. A high trust score alone does not imply Low transaction risk. Forecasts require calibration and named risk factors; absent models return UNAVAILABLE, not seeded predictions.
 
-## 4. Proposed API (not implemented)
+## 4. Implemented API and remaining attribution contract
 
-- POST /api/workspace/recommendations: authenticated farmer-owned lot and scenario inputs; return READY, NEEDS_INPUT or UNAVAILABLE, explanations and missing inputs. FPO permissions must follow membership.
-- GET /api/workspace/recommendations/:id: owner or authorized FPO only; immutable evidence snapshot plus current expiry/eligibility.
-- GET /api/workspace/parties/:id/trust?role=BUYER: public-safe score metrics only; no KYC identifiers or dispute allegations.
-- POST /api/workspace/recommendations/:id/choose: idempotent selection event; does not book or move money.
-- Existing offer acceptance: optionally link recommendation after revalidation; user may choose another eligible option.
+- POST /api/workspace/recommendations/preview: validate an owned crop lot, matching buyer requirement and integer-paise costs; persist and return a versioned indicative-budget estimate. Missing baseline yields null delta. Waiting forecasts remain UNAVAILABLE.
+- GET /api/workspace/recommendations and GET /api/workspace/recommendations/:id: owner-only history and immutable evidence. No expanded FPO access is implemented.
+- GET /api/workspace/trust/:partyId: authenticated public-safe buyer metrics, upserting the current TrustScore cache; no private KYC documents or dispute allegations.
+- GET /api/workspace/updates and POST /api/workspace/updates/read: own durable notifications and account-level read state.
+- Future: an idempotent recommendation-choice event linked to a booking, after revalidation. Accepted booking terms are already snapshotted, but recommendation-to-realized-outcome attribution is not implemented.
 
 Use existing JWT/error conventions. GET is side-effect-free for recommendation generation. Add bounded timeouts, request coalescing and cache keys scoped to party/lot/version. Never expose API keys in evidence.
 
@@ -42,7 +42,7 @@ Use existing JWT/error conventions. GET is side-effect-free for recommendation g
 
 PRD.md §5.2 specifies proposed weights, exact 87-point fixture and provisional/suspended handling. Recompute from completed bookings, payment due/receipt events, attributed cancellations, verified transaction ratings, current KYC and final at-fault dispute decisions. Store denominators, asOf and formulaVersion.
 
-Current Booking has status but lacks payment due/paid timestamps and structured cancellation attribution. Dispute lacks explicit outcome attribution fields. These must be added before reliable score backfill; do not infer on-time payments from RELEASED or guilt from RESOLVED alone.
+Booking now has nullable due-time fields and cancellation actor/time/reason. These are not historical proof of paid timestamps or cancellation fault. Dispute still lacks explicit outcome attribution fields. Verified payment and adjudication evidence is required before reliable score backfill; do not infer on-time payments from RELEASED or guilt from RESOLVED alone.
 
 Keep legacy CredibilityScore active until dual-read/shadow computation is approved. New TrustScore uses party+role uniqueness. Apply penalties idempotently per dispute decision and support reversal on appeal. Suspension must block new offers/acceptance as well as publication; preserve payment, fulfillment and dispute access for existing obligations. Three-case window/reinstatement requires product approval.
 
@@ -54,10 +54,10 @@ Proposed jobs: trust snapshot recomputation on relevant events plus reconciliati
 
 ## 7. UI and deployment boundary
 
-RecommendationCard renders WHAT / WHY / RISK / WHAT IF I WAIT, with TrustScoreCard inside WHY. TrustScoreBadge is reusable on buyer profiles. /preview/decision is a synthetic scaffold, not a production recommendation route. Production wiring, localization and authenticated API integration remain proposed.
+RecommendationCard renders WHAT / WHY / RISK / WHAT IF I WAIT, with buyer trust inside WHY. Buyer profiles expose the evidence card. Authenticated farmer buyer comparisons create real saved estimates, and `/farmer/decisions` reopens history. Core farmer assistance is localized EN/HI/MR, with browser voice and typing fallback; extended admin/provider copy remains English. `/preview/decision` is separately labelled synthetic.
 
-Preserve existing hosting flexibility; no new service is required for the scaffold. Before production: real auth/delivery, payment provider review, backups, privacy/security review and monitoring. Proposed Prisma fragment is additive and not part of the active schema. No migration, destructive backfill or ad-code removal is authorized by this document.
+Next.js proxies browser requests through its own `/api/backend` origin to Express, supporting separate hosting and a single frontend tunnel. Apply the additive database upgrade before deploying the new API (see Schema.md). Before real-user production: phone/recovery delivery, payment integration, backups, privacy/security review and monitoring. No destructive backfill or ad-code deletion is part of this implementation.
 
 ## 8. Out-of-scope legacy capabilities
 
-Marketplace advertising is deferred and excluded from ranking, current monetization and milestones. Existing MarketplaceAd data/endpoints remain for review. Broad equipment/labor/input expansion and agronomy require explicit linkage to sale decisions before prioritization.
+Marketplace advertising is deferred and excluded from ranking, monetization and milestones. Endpoints are disabled; existing MarketplaceAd code/data remain for review. Unsupported legacy crop diagnosis is similarly disabled without deleting its records. Broad equipment/labor/input expansion and agronomy require explicit linkage to sale decisions before prioritization.

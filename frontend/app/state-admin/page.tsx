@@ -1,2 +1,2 @@
 import Workspace from '../components/Workspace';
-export default function Page() { return <Workspace initialView="analytics" audience="admin"/>; }
+export default function Page() { return <Workspace initialView="overview" audience="admin"/>; }

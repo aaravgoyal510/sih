@@ -5,7 +5,7 @@ import { getDistrictDistanceScore } from '../district-proximity';
 export class CropLotMatchingStrategy implements MatchingStrategy {
   scoreCandidates(requirement: Requirement, candidates: ListingWithParty[]): MatchCandidateResult[] {
     const reqAttrs = (requirement.attributes as any) || {};
-    const reqCrop = (reqAttrs.crop || '').toLowerCase();
+    const reqCrop = (reqAttrs.crop || '').trim().toLowerCase();
     const reqQty = Number(requirement.quantityNeeded || reqAttrs.quantityKg || reqAttrs.targetQuantity || 0);
     const reqGrade = (reqAttrs.qualityGrade || reqAttrs.qualitySpec || 'B').toUpperCase();
     const reqPrice = Number(requirement.budget || reqAttrs.maxPricePerKg || 0);
@@ -16,16 +16,17 @@ export class CropLotMatchingStrategy implements MatchingStrategy {
       if (listing.resourceType !== 'CROP_LOT') continue;
 
       const listAttrs = (listing.attributes as any) || {};
-      const listCrop = (listAttrs.crop || '').toLowerCase();
+      const listCrop = (listAttrs.crop || '').trim().toLowerCase();
       const listQty = Number(listAttrs.quantityKg || 0);
       const listGrade = (listAttrs.qualityGrade || 'B').toUpperCase();
       const listPrice = Number(listing.price || listAttrs.pricePerKg || 0);
       const listTitle = listAttrs.title || `${listGrade} Grade ${listAttrs.crop || 'Crop'} Lot (${listQty}kg)`;
 
-      // Crop must match, otherwise zero fit score
-      if (reqCrop && listCrop && !listCrop.includes(reqCrop) && !reqCrop.includes(listCrop)) {
-        continue; // Skip completely irrelevant crop types
-      }
+      // Feasibility precedes ranking. Never suggest a lot the offer endpoint
+      // cannot accept; short lots belong in the explicit FPO pooling flow.
+      if(!reqCrop||reqCrop!==listCrop||reqQty<=0||listQty<reqQty||listPrice<=0)continue;
+      if(reqAttrs.qualityGrade&&listGrade!==String(reqAttrs.qualityGrade).toUpperCase())continue;
+      if(listAttrs.isPooled&&reqQty!==listQty)continue;
 
       // 1. Quality Fit (25%)
       let qualityFit = 100;

@@ -19,15 +19,16 @@ test('unavailable live feed never presents legacy seed cache as live prices',asy
 test('all 11 role types open a database-backed workspace without page errors',async({page})=>{
  test.setTimeout(600000); // Includes cold Next dev compilation and hosted DB round-trips for 11 portals.
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- let snapshotReads=0;page.on('request',r=>{if(r.url().endsWith('/api/workspace/snapshot'))snapshotReads++;});
+ let snapshotReads=0;page.on('request',r=>{if(['/api/backend/api/workspace/snapshot','/api/backend/api/workspace/farmer-home'].includes(new URL(r.url()).pathname))snapshotReads++;});
  const roles=['Farmer','FPO aggregator','Buyer','Storage operator','Transport operator','Equipment provider','Labor contractor','Input supplier','District administration','State command','Platform administration'];
+ const headings:Record<string,string>={'FPO aggregator':'Member harvest desk',Buyer:'Procurement desk','Storage operator':'Storage capacity desk','Transport operator':'Dispatch desk','Equipment provider':'Equipment rental desk','Labor contractor':'Crew scheduling desk','Input supplier':'Farm supplies desk','District administration':'District case desk','State command':'State escalation desk','Platform administration':'Platform reliability desk'};
  for(const role of roles){
   snapshotReads=0;
   await page.goto('/demo');
   const cards=page.locator('.ks-portal-card').filter({has:page.getByRole('heading',{name:role,exact:true})});
   await expect(cards.first()).toBeVisible();await cards.first().click();
   if(role==='Farmer'){await expect(page.getByRole('heading',{name:/Bhausaheb/})).toBeVisible();await expect(page.locator('.farmer-grid a')).toHaveCount(4);}
-  else await expect(page.locator('.ks-workspace')).toBeVisible();
+  else {await expect(page.locator('.ks-workspace')).toBeVisible();await expect(page.getByRole('heading',{name:headings[role],exact:true})).toBeVisible();}
   await expect(page.locator('.ks-alert.error')).toHaveCount(0);
   expect(snapshotReads, `${role} should share duplicate mount reads`).toBe(1);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
@@ -43,7 +44,7 @@ test('mobile hub and marketplace fit the viewport, filters and offer dialog work
  await expect(page.locator('.ks-portal-card')).toHaveCount(5);
  await page.getByRole('button',{name:'Farmers & buyers',exact:true}).click();
  await page.locator('.ks-portal-card').filter({has:page.getByRole('heading',{name:'Buyer',exact:true})}).first().click();
- await page.getByRole('button',{name:'Source produce',exact:true}).click();
+ await page.getByRole('navigation',{name:'Workspace sections'}).getByRole('button',{name:'Source produce',exact:true}).click();
  await page.getByLabel('Search marketplace').fill('Pomegranate');
  const listings=page.locator('.ks-listing');await expect(listings).toHaveCount(1);
  await listings.getByRole('button',{name:'Send offer'}).click();

@@ -1,2 +1,2 @@
-import Workspace from '../../components/Workspace';
-export default function Page() { return <Workspace initialView="create" audience="farmer"/>; }
+import GuidedSell from '../../components/GuidedSell';
+export default function Page() { return <GuidedSell/>; }

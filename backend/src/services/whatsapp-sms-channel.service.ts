@@ -88,7 +88,7 @@ export class WhatsappSmsChannelService {
 
   private async handleMyOffersIntent(fromPhone: string): Promise<WhatsAppMessageResult> {
     const party = await prisma.party.findFirst({
-      where: { user: { phone: { contains: fromPhone.slice(-10) } } },
+      where: { user: { phone: fromPhone } },
       include: {
         listings: {
           include: {
@@ -140,7 +140,7 @@ export class WhatsappSmsChannelService {
       fromPhone,
       intentRecognized: 'SELL_CROP',
       channel: 'WHATSAPP',
-      replyText: `🌾 *Crop Lot Registration*\nReceived request: "${text}"\n\nBest net realization nearby: *₹19.50/kg* at *Lasalgaon APMC*.\nYour lot has been published to verified buyers! Reply *MY OFFERS* to track incoming offers.`,
+      replyText: `Crop draft request received: "${text}". Nothing has been published. Open KrishiSetu, choose Sell my crop, review quantity and price, then explicitly publish. This channel has no confirmed buyer quote or net-realization estimate.`,
     };
   }
 }

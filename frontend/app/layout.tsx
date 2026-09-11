@@ -1,12 +1,13 @@
 import './globals.css';
+import './product.css';
 import React from 'react';
 import { LanguageProvider } from '../lib/LanguageContext';
 import AppChrome from './components/AppChrome';
 import OfflineSupport from './components/OfflineSupport';
 
 export const metadata = {
-  title: 'KrishiSetu: State-Deployable Market Linkage and Farm-Services Ecosystem (SIH 2026)',
-  description: 'State-Deployable Market Linkage & Farm Services Platform',
+  title: 'KrishiSetu — Better crop decisions, simpler trade',
+  description: 'Compare take-home value, connect with buyers and sell crops through a multilingual, voice-assisted experience.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

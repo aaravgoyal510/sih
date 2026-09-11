@@ -25,9 +25,9 @@ Buyer profile and offer detail should display the reusable component; Recommenda
 
 ## 4. Navigation and accessibility
 
-Four proposed farmer entries: Sell my crop; Compare take-home value; Storage & transport; My offers & payments. Existing broader services require a discoverability decision before navigation changes. No farmer sidebar or emoji. Large controls (minimum 44px target), semantic headings, keyboard focus, sufficient contrast and no horizontal overflow at 320px.
+Four primary farmer entries: Sell my crop; Market prices and take-home comparison; Services; My offers & payments. A simple service chooser retains broader provider access. Saved decisions and account checks remain secondary. No farmer sidebar or emoji. Large controls (minimum 44px target), semantic headings, keyboard focus, sufficient contrast and no horizontal overflow at 320px.
 
-Full farmer copy should support English, Hindi and Marathi; existing localization covers home only. The scaffold is English pending translation. Avoid unqualified “best,” “guaranteed,” “AI forecast” and green success styling for missing evidence. Money shows INR and total/per-kg units; costs remain inspectable rather than hiding uncertainty in one large figure.
+Guided selling, buyer comparisons, offers, services and price calculations now provide English, Hindi and Marathi assistance and user-initiated read-aloud. Extended provider/admin and verification/dispute copy still needs localization; browser recognition needs real-device acceptance. The exact synthetic fixture retains its specified example text. Avoid unqualified “best,” “guaranteed,” “AI forecast” and green success styling for missing evidence. Money shows INR and total/per-kg units; costs remain inspectable rather than hiding uncertainty in one large figure.
 
 ## 5. Secondary surfaces
 

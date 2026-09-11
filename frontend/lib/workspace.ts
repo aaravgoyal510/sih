@@ -1,6 +1,7 @@
 import { API_URL } from './api-config';
 
 const pendingReads = new Map<string, Promise<any>>();
+export class ApiError extends Error { constructor(message:string,public status:number){super(message);this.name='ApiError';} }
 export function request(path: string, method = 'GET', body?: unknown): Promise<any> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('maha_token') : null;
   const key = `${token || 'public'}:${path}`;
@@ -23,7 +24,7 @@ async function performRequest(path: string, method: string, body: unknown, token
   });
   const data = await response.json().catch(() => null);
   if (!data) throw new Error(`API gateway returned a non-JSON response (HTTP ${response.status}). Check backend availability and frontend BACKEND_URL. If you submitted a change, refresh its status before trying again.`);
-  if (!response.ok || !data.success) throw new Error(data.error || 'Request failed. Please try again.');
+  if (!response.ok || !data.success) throw new ApiError(data.error || 'Request failed. Please try again.',response.status);
   return data;
 }
 

@@ -4,6 +4,10 @@ Browser requests now use `/api/backend` on the frontend's own origin. Next.js re
 
 ## Vercel frontend + Render backend
 
+Render root directory: `backend`; build: `npm ci --include=dev && npm run build`; start: `npm start`. The build emits JavaScript to `dist`, so the production server does not run a TypeScript development watcher. The optional root `render.yaml` describes a new free web service; it does not change existing dashboard settings or provision a paid worker. An always-running worker can use `npm run start:worker` on existing worker infrastructure after the same build; free web-service sleep means no guaranteed scheduled execution. Preserve your existing strong JWT secret when updating a service, rather than rotating it accidentally.
+
+Before deploying the upgraded API against an existing database, run `npm --prefix backend run db:check` and `npm --prefix backend run db:upgrade` with backend credentials in the server environment. This applies the checked-in additive decision-record schema without reseeding/deleting data. Stop API/worker during Prisma generation on Windows if its DLL is locked, generate the client, then restart both. See Schema.md for migration-history reconciliation; do not use a database reset. A brand-new empty database needs separate initial schema provisioning.
+
 1. Push the connectivity changes and deploy the frontend from root `frontend`.
 2. In Vercel Environment Variables, set **BACKEND_URL** to your Render origin, e.g. `https://sih-1-h70e.onrender.com`, for Production and any Preview environment you use.
 3. Remove obsolete NEXT_PUBLIC_API_URL / NEXT_PUBLIC_BACKEND_URL values to avoid confusion. They remain compatibility fallbacks, in that order of priority: BACKEND_URL → NEXT_PUBLIC_BACKEND_URL → NEXT_PUBLIC_API_URL.
