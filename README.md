@@ -81,3 +81,4 @@ A service worker serves an offline page with observations previously saved on th
 See [DELIVERY.md](DELIVERY.md) for evidence, walkthrough and remaining deployment work. [PRD](PRD.md), [TechSpec](TechSpec.md), [AppFlow](AppFlow.md), [Design](Design.md), [Schema](Schema.md) and [ImplementationPlan](ImplementationPlan.md) describe the broader intended product, not proof that every roadmap item has shipped.
 
 Live payments, SMS/WhatsApp delivery, government certificate checks, media/document upload, advanced forecasting, geographic choropleth and production operations require further integration. The legacy FasalRakshak page remains outside the core PS 26132 marketplace flow.
+ver
