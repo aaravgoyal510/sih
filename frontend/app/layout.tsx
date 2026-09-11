@@ -2,6 +2,7 @@ import './globals.css';
 import React from 'react';
 import { LanguageProvider, LanguageTogglePill } from '../lib/LanguageContext';
 import DemoRoleSwitcherHeader from './components/DemoRoleSwitcherHeader';
+import BackendHealthBanner from './components/BackendHealthBanner';
 
 export const metadata = {
   title: 'KrishiSetu: State-Deployable Market Linkage and Farm-Services Ecosystem (SIH 2026)',
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <LanguageProvider>
           <div className="app-container">
+            <BackendHealthBanner />
             <DemoRoleSwitcherHeader />
             <main className="content-area">{children}</main>
           </div>
