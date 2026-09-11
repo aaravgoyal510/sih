@@ -22,7 +22,7 @@ export const submitVerification = async (req: Request, res: Response): Promise<v
     }
 
     const targetRole = role as PartyRole;
-    if (![PartyRole.STORAGE_OPERATOR, PartyRole.TRANSPORT_OPERATOR].includes(targetRole)) {
+    if (!( [PartyRole.STORAGE_OPERATOR, PartyRole.TRANSPORT_OPERATOR] as PartyRole[] ).includes(targetRole)) {
       res.status(400).json({
         success: false,
         error: `Step 7 scope only supports STORAGE_OPERATOR and TRANSPORT_OPERATOR verifications.`,
@@ -53,7 +53,7 @@ export const submitVerification = async (req: Request, res: Response): Promise<v
         role: targetRole,
         documentType,
         documentRef: documentRef || `REF_${Date.now()}`,
-        documentUrl: documentUrl || `https://documents.mahamarket.gov.in/${partyId}/${documentType}.pdf`,
+        documentUrl: documentUrl || `https://documents.krishisetu.gov.in/${partyId}/${documentType}.pdf`,
         status: VerificationStatus.PENDING,
         slaDeadline,
         auditLogs: {

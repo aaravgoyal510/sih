@@ -7,17 +7,12 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('maha_token') : null;
-    if (token) {
-      router.replace('/farmer/home');
-    } else {
-      router.replace('/login');
-    }
+    router.replace('/demo');
   }, [router]);
 
   return (
-    <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
-      Loading Maha Market Portal...
+    <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      Launching KrishiSetu Demo Role-Switcher Hub...
     </div>
   );
 }

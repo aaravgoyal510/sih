@@ -76,6 +76,8 @@ not a new screen design.
 - SMS fallback templates for: offer received, price threshold hit, payment released,
   verification status change
 - Voice/WhatsApp bot reuses the same top-level intents - no separate flow to design
+- **WhatsApp/SMS Medium Exception**: While farmer PWA/web screens strictly prohibit emojis in favor of SVG icons and government-grade typography (Section 2), text-only WhatsApp/SMS messaging channels deliberately use standard Unicode symbols (e.g. 🌾, 📌, 📍, 💰, 📲) for visual section headers and scannability on small chat surfaces where custom SVGs cannot render.
+
 
 ## 8. Admin/Governance Screens (District & State)
 - Queue-style layouts (verification queue, dispute queue) with SLA countdown badges

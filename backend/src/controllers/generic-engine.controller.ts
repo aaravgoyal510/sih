@@ -222,7 +222,7 @@ export const updateOfferStatus = async (req: AuthenticatedRequest, res: Response
           offerId: id,
           fulfillmentStatus: FulfillmentStatus.PENDING,
           paymentStatus: PaymentStatus.PENDING,
-          agreementUrl: `https://maha-market.gov.in/agreements/agreement-${id.slice(0, 8)}.pdf`,
+          agreementUrl: `https://krishisetu.gov.in/agreements/agreement-${id.slice(0, 8)}.pdf`,
           logisticsNote: 'Digital agreement generated upon offer acceptance.',
         },
       });

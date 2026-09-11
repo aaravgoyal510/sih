@@ -1,4 +1,4 @@
-# ImplementationPlan.md — Market Linkage & Farm Services Platform
+# ImplementationPlan.md — KrishiSetu: State-Deployable Market Linkage and Farm-Services Ecosystem (SIH 2026)
 
 ## 1. Build-Depth Tiers (nothing is cut from scope — this controls build depth
 ## for the hackathon timeline only; PRD.md keeps every feature)
@@ -88,3 +88,5 @@ between them, only our hackathon time budget does."
       live unless they actually are in the demo build
 - [ ] No feature from PRD.md is silently missing from the pitch — if it's Tier C,
       say so explicitly rather than omitting it
+- [x] WhatsApp/SMS channel uses standard text formatting unicode symbols (🌾, 📌, 💰) as a recorded medium-specific exception to the farmer web app's strict "no emoji on PWA UI" rule (Design.md §7)
+

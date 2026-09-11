@@ -1,12 +1,12 @@
 {
-  "name": "maha-market-backend",
+  "name": "krishisetu-backend",
   "version": "1.0.0",
-  "description": "Backend API for Maha Market Linkage & Farm Services Platform",
+  "description": "Backend API for KrishiSetu Linkage & Farm Services Platform",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc && prisma generate",
-    "start": "node dist/index.js",
+    "build": "prisma generate",
+    "start": "tsx src/index.ts",
     "prisma:generate": "prisma generate",
     "prisma:db:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",

@@ -1,4 +1,4 @@
-# PRD.md — Market Linkage & Farm Services Platform (SIH 2026 — PS 26132)
+# PRD.md — KrishiSetu: State-Deployable Market Linkage and Farm-Services Ecosystem (SIH 2026)
 
 ## 1. Problem Statement (Govt of Maharashtra, SIH 2026, PS 26132)
 Smallholder farmers and FPOs lack real-time visibility into mandi prices, buyer demand,

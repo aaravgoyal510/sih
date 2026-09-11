@@ -24,7 +24,7 @@ export const initiatePayment = async (req: Request, res: Response): Promise<void
 export const getPaymentStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { bookingId } = req.params;
-    const result = await paymentGatewayAdapter.getStatus(bookingId);
+    const result = await paymentGatewayAdapter.getStatus(bookingId as string);
 
     res.status(200).json({
       success: true,

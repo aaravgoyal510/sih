@@ -370,3 +370,22 @@ model StateDailyStats {
   by request-path code — see TechSpec.md §7 for refresh cadence.
 - `OtpCode` provides persistent storage and expiry validation for OTP-based farmer authentication across restarts.
 - `Booking.totalAmount` stores the computed total transaction value (quantityNeeded * offer.price), leaving `Offer.price` strictly as the per-unit negotiated price.
+- `MarketplaceAd` stores verified-seller promotional ad banners (agri-inputs, equipment, storage). It is intentionally designed as a standalone table rather than reusing the generic `Listing`/`Requirement` engine because ads are promotional content served across specific UI surfaces (resource detail pages, buyer/provider dashboards) rather than transactable marketplace resources that participate in matching, offers, bookings, escrow payments, and ratings. Gating is enforced via the seller's `Verification` status (`APPROVED`).
+
+```prisma
+model MarketplaceAd {
+  id          String   @id @default(uuid())
+  partyId     String
+  party       Party    @relation(fields: [partyId], references: [id])
+  title       String
+  description String
+  imageUrl    String?
+  targetUrl   String?
+  placement   String   // RESOURCE_DETAIL | BUYER_DASHBOARD | PROVIDER_DASHBOARD
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([placement, active])
+}
+```
+

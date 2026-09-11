@@ -57,7 +57,7 @@ export class StubPaymentGatewayAdapter implements PaymentGatewayAdapter {
       amount: updatedBooking.totalAmount ?? amount,
       paymentStatus: updatedBooking.paymentStatus,
       gatewayProvider: 'STUB_PAYMENT_GATEWAY',
-      redirectUrl: `https://checkout.mahamarket.gov.in/stub-pay?ref=${paymentRef}`,
+      redirectUrl: `https://checkout.krishisetu.gov.in/stub-pay?ref=${paymentRef}`,
       createdAt: new Date().toISOString(),
     };
   }

@@ -1,4 +1,4 @@
-# TechSpec.md — Market Linkage & Farm Services Platform
+# TechSpec.md — KrishiSetu: State-Deployable Market Linkage and Farm-Services Ecosystem (SIH 2026)
 
 ## 1. Architecture Overview
 ```

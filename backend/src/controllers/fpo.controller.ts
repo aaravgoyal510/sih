@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/prisma';
 import { PartyRole, ListingStatus, ResourceType } from '@prisma/client';
 import { matchingEngine } from '../matching/matching-engine';
+import { nabardSfacAdapter } from '../adapters/nabard-sfac.adapter';
 
 /**
  * FPO Admin aggregates multiple individual small farmer listings into one pooled FPO listing
@@ -133,8 +134,7 @@ export const lookupFpoRegistry = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const { nabardSfacAdapter } = await import('../adapters/nabard-sfac.adapter');
-    const fpoRecord = await nabardSfacAdapter.lookupFpo(cinOrRegNo);
+    const fpoRecord = await nabardSfacAdapter.lookupFpo(cinOrRegNo as string);
     res.status(200).json({
       success: true,
       fpoRecord,

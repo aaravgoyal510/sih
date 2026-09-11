@@ -1,9 +1,10 @@
 import './globals.css';
 import React from 'react';
 import { LanguageProvider, LanguageTogglePill } from '../lib/LanguageContext';
+import DemoRoleSwitcherHeader from './components/DemoRoleSwitcherHeader';
 
 export const metadata = {
-  title: 'Maha Market — Farmer Portal',
+  title: 'KrishiSetu: State-Deployable Market Linkage and Farm-Services Ecosystem (SIH 2026)',
   description: 'State-Deployable Market Linkage & Farm Services Platform',
 };
 
@@ -17,13 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <LanguageProvider>
           <div className="app-container">
-            <header className="header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="header-title">Maha Market</span>
-                <span className="header-badge">MH Govt</span>
-              </div>
-              <LanguageTogglePill />
-            </header>
+            <DemoRoleSwitcherHeader />
             <main className="content-area">{children}</main>
           </div>
         </LanguageProvider>

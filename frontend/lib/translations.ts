@@ -3,7 +3,7 @@ export type Language = 'en' | 'hi' | 'mr';
 export const TRANSLATIONS: Record<Language, Record<string, string>> = {
   en: {
     // Header & Common
-    appTitle: 'Maha Market Linkage & Farm Services',
+    appTitle: 'KrishiSetu Linkage & Farm Services',
     backToHome: 'Back to Home',
     logout: 'Logout',
     districtLabel: 'District',
@@ -75,7 +75,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
   },
   hi: {
     // Header & Common
-    appTitle: 'महा बाजार जुड़ाव एवं कृषि सेवाएं',
+    appTitle: 'कृषिसेतु जुड़ाव एवं कृषि सेवाएं',
     backToHome: 'मुख्य पृष्ठ पर वापस जाएं',
     logout: 'लॉगआउट',
     districtLabel: 'जिला',
@@ -147,7 +147,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
   },
   mr: {
     // Header & Common
-    appTitle: 'महा बाजार जोडणी आणि शेती सेवा',
+    appTitle: 'कृषिसेतु जोडणी आणि शेती सेवा',
     backToHome: 'मुख्य पृष्ठावर जा',
     logout: 'लॉगआउट',
     districtLabel: 'जिल्हा',

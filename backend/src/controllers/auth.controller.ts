@@ -18,7 +18,7 @@ export const requestOtp = async (req: Request, res: Response): Promise<void> => 
     // =========================================================================
     // INTEGRATION POINT: Real SMS / WhatsApp Gateway Dispatch
     // In production, plug in SMS gateway adapter (e.g. Twilio / Gupshup / Fast2SMS) here:
-    // await smsAdapter.sendSms(phone, `Your Maha Market OTP is ${code}`);
+    // await smsAdapter.sendSms(phone, `Your KrishiSetu OTP is ${code}`);
     // =========================================================================
 
     const existingUser = await prisma.user.findUnique({ where: { phone } });

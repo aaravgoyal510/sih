@@ -33,6 +33,9 @@ model Party {
   verifications     Verification[]
   credibility       CredibilityScore?
   warehouseReceipts WarehouseReceipt[]
+  marketplaceAds    MarketplaceAd[]
+  farmActivities    FarmActivityLog[]
+  cropIssueReports  CropIssueReport[]
 }
 
 enum PartyRole {
@@ -335,3 +338,50 @@ model OtpCode {
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
+
+model MarketplaceAd {
+  id          String   @id @default(uuid())
+  partyId     String
+  party       Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  imageUrl    String?
+  targetUrl   String?
+  placement   String   // RESOURCE_DETAIL | BUYER_DASHBOARD | PROVIDER_DASHBOARD
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([placement, active])
+}
+
+model FarmActivityLog {
+  id           String   @id @default(uuid())
+  partyId      String
+  party        Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  crop         String
+  activityType String   // SOWING | IRRIGATION | FERTILIZATION | PESTICIDE_SPRAY | HARVESTING | OTHER
+  costAmount   Float    // ₹ cost incurred
+  notes        String?
+  date         DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([partyId, crop])
+}
+
+model CropIssueReport {
+  id              String   @id @default(uuid())
+  partyId         String
+  party           Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  crop            String
+  imageUrl        String?
+  issueType       String   // PEST_ATTACK | LEAF_BLIGHT | NUTRIENT_DEFICIENCY | WILTING | OTHER
+  aiDiagnosis     String   // Rule-based or AI Diagnostic result
+  advisoryNote    String   // Recommended treatment / action
+  expertEscalated Boolean  @default(false) // Fallback routing to KVK expert
+  status          String   @default("DIAGNOSED") // DIAGNOSED | ESCALATED_TO_KVK | RESOLVED
+  createdAt       DateTime @default(now())
+
+  @@index([partyId, status])
+}
+
+
