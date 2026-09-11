@@ -1,3 +1,4 @@
+import '../config/env';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'maha-market-secret-jwt-key-2026';

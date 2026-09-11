@@ -1,279 +1,42 @@
 'use client';
-
-import React, { useEffect, useState } from 'react';
+import React,{useEffect,useState} from 'react';
 import Link from 'next/link';
-import { ArrowLeft, TrendingUp, Search, WifiOff, AlertTriangle, RefreshCw } from 'lucide-react';
-import { useLanguage } from '../../../lib/LanguageContext';
-import { API_URL } from '../../../lib/api-config';
-import { saveCache, getCache, formatStaleness } from '../../../lib/cache';
+import {TrendingUp,MapPin,RefreshCw,WifiOff} from 'lucide-react';
+import {API_URL} from '../../../lib/api-config';
+import {money} from '../../../lib/workspace';
+import {useLanguage} from '../../../lib/LanguageContext';
 
-interface MandiPriceRecord {
-  id: string;
-  crop: string;
-  district: string;
-  market: string;
-  pricePerKg: number;
-  arrivalsKg?: number;
-  source: string;
-  recordedAt: string;
+let pendingPrices: Promise<any> | null = null;
+function getPrices(refresh = false) {
+ if (!pendingPrices) pendingPrices = fetch(`${API_URL}/api/mandi-prices?limit=2500${refresh ? '&refresh=1' : ''}`, { cache: 'no-store', signal: AbortSignal.timeout(75000) })
+  .then(async response => { const data = await response.json(); if (!response.ok || !data.success) throw new Error('Could not load prices'); return data; })
+  .finally(() => { pendingPrices = null; });
+ return pendingPrices;
 }
 
-export default function CheckPricesPage() {
-  const { t, language } = useLanguage();
-  const [prices, setPrices] = useState<MandiPriceRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [isOffline, setIsOffline] = useState(false);
-  const [cachedAt, setCachedAt] = useState<number | null>(null);
-
-  const backendUrl = API_URL;
-
-  const fetchPrices = () => {
-    setLoading(true);
-
-    // Check navigator.onLine state
-    const online = typeof navigator !== 'undefined' ? navigator.onLine : true;
-
-    if (!online) {
-      loadFromCache();
-      return;
-    }
-
-    fetch(`${backendUrl}/api/mandi-prices?limit=50`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        const records = data.prices || data || [];
-        setPrices(records);
-        setIsOffline(false);
-        setCachedAt(Date.now());
-        saveCache('mandi_prices', records);
-      })
-      .catch((err) => {
-        console.warn('Network request failed, falling back to offline cache:', err);
-        loadFromCache();
-      })
-      .finally(() => setLoading(false));
-  };
-
-  const loadFromCache = () => {
-    setIsOffline(true);
-    const cached = getCache<MandiPriceRecord[]>('mandi_prices');
-    if (cached) {
-      setPrices(cached.data);
-      setCachedAt(cached.cachedAt);
-    } else {
-      // Fallback sample data if local storage was empty
-      const sample: MandiPriceRecord[] = [
-        { id: '1', crop: 'Tomato', district: 'Ratnagiri', market: 'Ratnagiri APMC', pricePerKg: 11.0, arrivalsKg: 1500, source: 'AGMARKNET', recordedAt: new Date().toISOString() },
-        { id: '2', crop: 'Onion', district: 'Nashik', market: 'Lasalgaon APMC', pricePerKg: 25.5, arrivalsKg: 5000, source: 'AGMARKNET', recordedAt: new Date().toISOString() },
-        { id: '3', crop: 'Ginger(Green)', district: 'Ratnagiri', market: 'Ratnagiri APMC', pricePerKg: 140.0, arrivalsKg: 400, source: 'AGMARKNET', recordedAt: new Date().toISOString() },
-        { id: '4', crop: 'Bhindi(Ladies Finger)', district: 'Ratnagiri', market: 'Ratnagiri APMC', pricePerKg: 25.0, arrivalsKg: 800, source: 'AGMARKNET', recordedAt: new Date().toISOString() },
-      ];
-      setPrices(sample);
-      setCachedAt(Date.now() - 5 * 60 * 1000); // 5 mins ago
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    // Check if offline query param is present for testing/demoing
-    if (typeof window !== 'undefined' && window.location.search.includes('offline=true')) {
-      loadFromCache();
-      return;
-    }
-
-    fetchPrices();
-
-    const handleOnline = () => {
-      setIsOffline(false);
-      fetchPrices();
-    };
-    const handleOffline = () => loadFromCache();
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  const filteredPrices = prices.filter((p) =>
-    p.crop.toLowerCase().includes(search.toLowerCase()) ||
-    p.district.toLowerCase().includes(search.toLowerCase()) ||
-    p.market.toLowerCase().includes(search.toLowerCase())
-  );
-
-  return (
-    <div style={{ paddingTop: '10px', paddingBottom: '30px' }}>
-      <Link
-        href="/farmer/home"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          color: '#15803d',
-          textDecoration: 'none',
-          fontWeight: 600,
-          marginBottom: '16px',
-        }}
-      >
-        <ArrowLeft size={20} />
-        {t('backToHome')}
-      </Link>
-
-      {/* Offline Staleness Indicator Banner per Design.md §7 */}
-      {isOffline && (
-        <div
-          style={{
-            backgroundColor: '#fef3c7',
-            border: '1px solid #f59e0b',
-            borderRadius: '12px',
-            padding: '12px 16px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            color: '#92400e',
-          }}
-        >
-          <WifiOff size={20} style={{ flexShrink: 0 }} />
-          <div style={{ flexGrow: 1 }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>
-              {t('offlineMode')} • {cachedAt ? formatStaleness(cachedAt, language) : t('connectivityWarning')}
-            </div>
-            <div style={{ fontSize: '0.75rem', opacity: 0.9 }}>
-              {t('showingCachedData')} {cachedAt ? new Date(cachedAt).toLocaleTimeString() : ''}.
-            </div>
-          </div>
-          <button
-            onClick={fetchPrices}
-            style={{
-              background: '#ffffff',
-              border: '1px solid #d97706',
-              color: '#b45309',
-              borderRadius: '8px',
-              padding: '6px 10px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <RefreshCw size={14} />
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Page Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-        <div
-          style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            backgroundColor: '#dcfce7',
-            color: '#15803d',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <TrendingUp size={26} />
-        </div>
-        <div>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-            {t('mandiPricesTitle')}
-          </h1>
-          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{t('mandiPricesSub')}</span>
-        </div>
-      </div>
-
-      {/* Search Input */}
-      <div style={{ position: 'relative', marginBottom: '16px' }}>
-        <Search
-          size={18}
-          style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}
-        />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t('searchCropPlaceholder')}
-          style={{
-            width: '100%',
-            padding: '10px 12px 10px 38px',
-            borderRadius: '10px',
-            border: '1px solid #cbd5e1',
-            fontSize: '0.9rem',
-          }}
-        />
-      </div>
-
-      {/* Mandi Prices List / Table */}
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>Loading market prices...</div>
-      ) : filteredPrices.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '30px', backgroundColor: '#f8fafc', borderRadius: '12px', color: '#64748b' }}>
-          {t('noPricesFound')}
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {filteredPrices.map((item) => (
-            <div
-              key={item.id}
-              style={{
-                backgroundColor: '#ffffff',
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
-                padding: '14px 16px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{item.crop}</div>
-                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
-                  {item.market} • <span style={{ fontWeight: 600, color: '#334155' }}>{item.district}</span>
-                </div>
-                {item.arrivalsKg && (
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
-                    {t('arrivalsHeader')}: {(item.arrivalsKg / 100).toFixed(1)} Q
-                  </div>
-                )}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#15803d' }}>
-                  Rs {item.pricePerKg.toFixed(1)}/kg
-                </div>
-                <span
-                  style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    backgroundColor: item.source === 'AGMARKNET' ? '#e0f2fe' : '#fef3c7',
-                    color: item.source === 'AGMARKNET' ? '#0369a1' : '#b45309',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    display: 'inline-block',
-                    marginTop: '4px',
-                  }}
-                >
-                  {item.source}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+export default function Prices(){
+ const {t}=useLanguage();const [feed,setFeed]=useState<any>(null);const [prices,setPrices]=useState<any[]>([]),[offline,setOffline]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(''),[crop,setCrop]=useState('Onion'),[district,setDistrict]=useState('Nashik'),[quantity,setQuantity]=useState(500),[transport,setTransport]=useState(1000),[commission,setCommission]=useState(0);
+ async function load(refresh=false){
+  setLoading(true);
+  const saved=()=>{try{return JSON.parse(localStorage.getItem('ks_verified_market_prices_v1')||'[]');}catch{return [];}};
+  try{
+   const d=await getPrices(refresh);const records=d.prices.length?d.prices:saved();
+   const cachedOnly=!d.prices.length&&records.length>0;
+   setFeed({...d,...(cachedOnly?{mode:Date.now()-Date.parse(records[0].recordedAt)>72*3600000?'stale':'cached',lastObservedAt:records[0].recordedAt}:{})});
+   setPrices(records);setOffline(false);
+   if(d.prices.length)localStorage.setItem('ks_verified_market_prices_v1',JSON.stringify(d.prices));
+   setError('');
+  }catch{
+   setPrices(saved());setOffline(true);setFeed((previous:any)=>previous?{...previous,mode:'cached',warning:'Connection unavailable; showing saved observations.'}:null);
+   setError('Connection unavailable. Only previously saved prices are shown.');
+  }finally{setLoading(false);}
+ }
+ useEffect(()=>{load();const timer=setInterval(()=>{if(document.visibilityState==='visible')load();},5*60000);const online=()=>load(true);window.addEventListener('online',online);return()=>{clearInterval(timer);window.removeEventListener('online',online);};},[]);
+ const crops=Array.from(new Set(prices.map(p=>p.crop))).sort();
+ const history=prices.filter(p=>p.crop===crop);const latest=new Map<string,any>();for(const p of history)if(!latest.has(p.district+'|'+p.market))latest.set(p.district+'|'+p.market,p);
+ const markets=Array.from(latest.values()).sort((a,b)=>b.pricePerKg-a.pricePerKg);
+ const points=history.filter(p=>p.district===district).sort((a,b)=>new Date(a.recordedAt).getTime()-new Date(b.recordedAt).getTime());
+ const daily=new Map<string,number[]>();for(const p of points){const day=p.recordedAt.slice(0,10);daily.set(day,[...(daily.get(day)||[]),p.pricePerKg]);}const series=Array.from(daily.entries()).map(([day,values])=>({day,value:values.reduce((s,n)=>s+n,0)/values.length})).slice(-14);
+ const lo=Math.min(...series.map(p=>p.value))*0.95,hi=Math.max(...series.map(p=>p.value))*1.05;const change=series.length>1?(series[series.length-1].value-series[0].value)/series[0].value*100:null;
+ return <div><Link className="ks-back" href="/farmer/home">← {t('backToHome')}</Link><header className="ks-page-heading"><div><p className="ks-eyebrow">PRICE DISCOVERY</p><h1>{t('mandiPricesTitle')}</h1><p className="ks-subtitle">Compare market prices and estimate what reaches your pocket.</p></div><button className="ks-button secondary" onClick={()=>load(true)} disabled={loading}><RefreshCw size={16}/>Refresh</button></header>{feed&&<section className="ks-panel" style={{marginBottom:20}} aria-live="polite"><div className="ks-section-heading"><h2>{({live:'Latest government feed',cached:'Saved verified feed',stale:'Older market observations',unavailable:'Live feed unavailable'} as Record<string,string>)[feed.mode]}</h2><span className="ks-badge">{feed.source}</span></div><p className="ks-subtitle">Market reports update when mandis publish them—not tick-by-tick prices. Auto-check every 5 minutes; manual refresh is limited to once per minute.</p><p>Last fetched: {feed.lastFetchedAt?new Date(feed.lastFetchedAt).toLocaleString():'No successful fetch this session'} · Latest observation: {feed.lastObservedAt?new Date(feed.lastObservedAt).toLocaleDateString():'Not available'}</p>{feed.warning&&<p className="ks-note" role="status">{feed.warning}</p>}<small>{feed.priceBasis}. Demo seed prices are excluded.</small></section>}{offline&&<div className="ks-alert"><WifiOff size={18}/>{error||'Showing cached records.'}</div>}<div className="ks-toolbar"><select aria-label="Crop" value={crop} onChange={e=>setCrop(e.target.value)}>{(crops.length?crops:['Onion']).map(c=><option key={c}>{c}</option>)}</select><select aria-label="District" value={district} onChange={e=>setDistrict(e.target.value)}>{Array.from(new Set(['Nashik',...prices.map(p=>p.district)])).sort().map(d=><option key={d}>{d}</option>)}</select><span className="ks-muted">Source labels and dates are retained from saved feed records.</span></div><div className="ks-two-column"><section className="ks-panel"><div className="ks-section-heading"><h2>{crop} in {district}</h2><TrendingUp size={23}/></div>{series.length>1?<><svg viewBox="0 0 600 180" role="img" aria-label={`${crop} price history in ${district}`} style={{width:'100%',height:180}}><line x1="20" y1="150" x2="580" y2="150" stroke="#dce5d9"/><polyline fill="none" stroke="#3c8855" strokeWidth="3" points={series.map((p,i)=>`${20+i*560/(series.length-1)},${150-(p.value-lo)/(hi-lo)*125}`).join(' ')}/>{series.map((p,i)=><circle key={p.day} cx={20+i*560/(series.length-1)} cy={150-(p.value-lo)/(hi-lo)*125} r="4" fill="#3c8855"><title>{p.day}: {money(p.value)}/kg</title></circle>)}</svg><div className="ks-section-heading"><small>{series[0].day}</small><small>{series[series.length-1].day}</small></div><p className="ks-note">Observed change: {change!>=0?'+':''}{change!.toFixed(1)}%. {change!>3?'Prices have risen in the available history. Compare possible gains with storage and spoilage costs before waiting.':'Compare current net returns across markets before selling.'} This is a history-based signal, not a price forecast.</p></>:<div className="ks-empty"><TrendingUp size={28}/><h3>{series.length?money(series[0].value)+'/kg':'No observations yet'}</h3><p>At least two recorded dates are needed to show a trend. No forecast is generated from a single observation.</p></div>}</section><aside className="ks-panel"><h2>Net value calculator</h2><p className="ks-subtitle">Use your actual costs to compare returns.</p><div className="ks-form"><label>Quantity (kg)<input type="number" min="1" value={quantity} onChange={e=>setQuantity(Math.max(1,Number(e.target.value)))}/></label><label>Total transport cost (₹)<input type="number" min="0" value={transport} onChange={e=>setTransport(Math.max(0,Number(e.target.value)))}/></label><label>Commission (%)<input type="number" min="0" max="100" value={commission} onChange={e=>setCommission(Math.min(100,Math.max(0,Number(e.target.value))))}/></label></div></aside></div><section className="ks-panel" style={{marginTop:22}}><h2>Compare nearby market returns</h2><p className="ks-subtitle">Net estimate = price × quantity − transport − commission. Same entered costs applied to each market; adjust costs for your route.</p>{loading?<div className="ks-loading">Loading saved market observations…</div>:markets.length?markets.map(p=><div className="ks-row" key={p.id}><MapPin size={22}/><div className="ks-grow"><strong>{p.market}</strong><small>{p.district} · {p.source} · Observed {new Date(p.recordedAt).toLocaleDateString()}</small></div><div className="ks-right"><strong>{money(p.pricePerKg)}/kg</strong><small>Estimated net {money(p.pricePerKg*quantity*(1-commission/100)-transport)}</small></div></div>):<div className="ks-empty">No saved prices for this crop. Try another crop or refresh after the next feed sync.</div>}</section></div>;
 }

@@ -11,6 +11,7 @@
 interface OtpEntry {
   code: string;
   expiresAt: number;
+  attempts: number;
 }
 
 const otpStore = new Map<string, OtpEntry>();
@@ -20,10 +21,11 @@ export const generateOtp = (phone: string): string => {
   const code = isDevOrTest ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes expiration
 
-  otpStore.set(phone, { code, expiresAt });
+  for (const [key, entry] of otpStore) if (entry.expiresAt < Date.now()) otpStore.delete(key);
+  otpStore.set(phone, { code, expiresAt, attempts: 0 });
 
   if (isDevOrTest) {
-    console.log(`[DEV OTP LOG] Dispatched OTP for Phone: ${phone} -> Code: ${code} (Use code '${code}' or '123456' to verify)`);
+    console.log('[DEV OTP] Local test code created; no SMS dispatched.');
   }
 
   return code;
@@ -32,13 +34,10 @@ export const generateOtp = (phone: string): string => {
 export const verifyOtpCode = (phone: string, code: string): boolean => {
   const isDevOrTest = process.env.NODE_ENV !== 'production' || process.env.DEMO_MODE === 'true';
 
-  // Dev & Test fallback passcode '123456'
-  if (isDevOrTest && code === '123456') {
-    return true;
-  }
-
   const entry = otpStore.get(phone);
   if (!entry) return false;
+  entry.attempts++;
+  if (entry.attempts > 5) { otpStore.delete(phone); return false; }
 
   if (Date.now() > entry.expiresAt) {
     otpStore.delete(phone);

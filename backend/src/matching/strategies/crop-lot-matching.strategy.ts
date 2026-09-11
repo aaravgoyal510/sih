@@ -6,9 +6,9 @@ export class CropLotMatchingStrategy implements MatchingStrategy {
   scoreCandidates(requirement: Requirement, candidates: ListingWithParty[]): MatchCandidateResult[] {
     const reqAttrs = (requirement.attributes as any) || {};
     const reqCrop = (reqAttrs.crop || '').toLowerCase();
-    const reqQty = Number(reqAttrs.quantityKg || reqAttrs.targetQuantity || 0);
+    const reqQty = Number(requirement.quantityNeeded || reqAttrs.quantityKg || reqAttrs.targetQuantity || 0);
     const reqGrade = (reqAttrs.qualityGrade || reqAttrs.qualitySpec || 'B').toUpperCase();
-    const reqPrice = Number(requirement.targetPricePerKg || reqAttrs.maxPricePerKg || 0);
+    const reqPrice = Number(requirement.budget || reqAttrs.maxPricePerKg || 0);
 
     const scored: MatchCandidateResult[] = [];
 

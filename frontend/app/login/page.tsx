@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '../../lib/api-config';
+import { destination } from '../../lib/workspace';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -67,7 +68,8 @@ export default function LoginPage() {
       if (data.success && data.token) {
         localStorage.setItem('maha_token', data.token);
         localStorage.setItem('maha_party', JSON.stringify(data.party));
-        router.push('/farmer/home');
+        localStorage.removeItem('maha_demo_role');
+        router.push(destination(data.party.roles[0]));
       } else {
         setError(data.error || 'Invalid OTP code');
       }

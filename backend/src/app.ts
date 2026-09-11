@@ -1,6 +1,10 @@
 import express from 'express';
+import './config/env';
+import workspaceRoutes from './routes/workspace.routes';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import authRoutes from './routes/auth.routes';
 import guardedRoutes from './routes/guarded.routes';
 import genericEngineRoutes from './routes/generic-engine.routes';
@@ -15,7 +19,11 @@ import adRoutes from './routes/ad.routes';
 import whatsappChannelRoutes from './routes/whatsapp-channel.routes';
 import fasalrakshakRoutes from './routes/fasalrakshak.routes';
 
-dotenv.config();
+// Local development supports either backend/.env (the documented location) or
+// the repository-root .env used by the current workspace. Runtime/deployment
+// environment variables always take precedence because dotenv does not override.
+const backendEnvPath = resolve(process.cwd(), '.env');
+dotenv.config({ path: existsSync(backendEnvPath) ? backendEnvPath : resolve(process.cwd(), '..', '.env') });
 
 export const app = express();
 
@@ -33,6 +41,16 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/workspace', workspaceRoutes);
+// The old demo endpoints trusted caller-supplied party IDs. New transactions
+// must use the authenticated workspace routes above instead.
+app.use('/api', (req, res, next) => {
+  if (req.method !== 'GET' && /^\/(listings|requirements|offers|bookings|payments|verifications|disputes|fpo|ads)(\/|$)/.test(req.path)) {
+    res.status(410).json({ success: false, error: 'This legacy mutation endpoint has been replaced by /api/workspace.' });
+    return;
+  }
+  next();
+});
 app.use('/api/guarded', guardedRoutes);
 app.use('/api/ads', adRoutes); // Marketplace Ads routes (Verified Seller Gated)
 app.use('/api/channels', whatsappChannelRoutes); // WhatsApp / SMS Channel Adapter routes

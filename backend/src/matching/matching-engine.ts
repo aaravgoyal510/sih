@@ -39,6 +39,7 @@ export class MatchingEngine {
       where: {
         resourceType: requirement.resourceType,
         status: 'OPEN',
+        partyId: { not: requirement.partyId },
       },
       include: {
         party: {

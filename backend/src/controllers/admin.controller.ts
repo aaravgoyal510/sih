@@ -141,6 +141,7 @@ export const getPriceHeatmap = async (req: AuthenticatedRequest, res: Response):
             where: {
               district: { equals: ds.district, mode: 'insensitive' },
               crop: { equals: selectedCrop, mode: 'insensitive' },
+              source: 'AGMARKNET_LIVE',
             },
             orderBy: { recordedAt: 'desc' },
           });

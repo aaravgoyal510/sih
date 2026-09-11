@@ -5,6 +5,8 @@ import { signToken } from '../utils/jwt';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { PartyRole } from '@prisma/client';
 
+const otpRequests = new Map<string, number>();
+
 export const requestOtp = async (req: Request, res: Response): Promise<void> => {
   try {
     const { phone } = req.body;
@@ -13,6 +15,18 @@ export const requestOtp = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
+    if (!/^\+91[6-9]\d{9}$/.test(phone)) {
+      res.status(400).json({ success: false, error: 'Enter a valid Indian mobile number with +91.' });
+      return;
+    }
+    if (process.env.NODE_ENV === 'production') {
+      res.status(503).json({ success: false, error: 'SMS delivery has not been configured for this deployment.' });
+      return;
+    }
+    const now = Date.now();
+    for (const [key, time] of otpRequests) if (now - time > 60000) otpRequests.delete(key);
+    if (otpRequests.has(phone)) { res.status(429).json({ success: false, error: 'Please wait one minute before requesting another code.' }); return; }
+    otpRequests.set(phone, now);
     const code = generateOtp(phone);
 
     // =========================================================================
@@ -27,7 +41,7 @@ export const requestOtp = async (req: Request, res: Response): Promise<void> => 
     // Security compliance: Do NOT return the OTP code in the API response.
     res.status(200).json({
       success: true,
-      message: `OTP dispatched to ${phone} via SMS gateway`,
+      message: 'Development OTP created. Use 123456 for this local evaluation; no SMS was sent.',
       phone,
       isNewUser,
     });
@@ -119,6 +133,10 @@ export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
 
 export const loginRole = async (req: Request, res: Response): Promise<void> => {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      res.status(403).json({ success: false, error: 'Role login is disabled in production.' });
+      return;
+    }
     const { phone, role, name, district, village } = req.body;
     if (!phone || !role) {
       res.status(400).json({ success: false, error: 'Phone and target role are required' });

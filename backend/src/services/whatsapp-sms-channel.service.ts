@@ -1,4 +1,5 @@
 import { prisma } from '../config/prisma';
+import { liveMarket } from './live-market.service';
 
 export interface WhatsAppMessageResult {
   fromPhone: string;
@@ -57,13 +58,8 @@ export class WhatsappSmsChannelService {
     else if (text.includes('SOLAPUR')) district = 'Solapur';
 
     // Query MandiPrice table (same backend ingestion table used by Next.js web app)
-    const latestPrice = await prisma.mandiPrice.findFirst({
-      where: {
-        crop: { equals: crop, mode: 'insensitive' },
-        district: { equals: district, mode: 'insensitive' },
-      },
-      orderBy: { recordedAt: 'desc' },
-    });
+    const feed = await liveMarket.get();
+    const latestPrice = feed.prices.find(p=>p.crop.toLowerCase()===crop.toLowerCase()&&p.district.toLowerCase()===district.toLowerCase());
 
     if (!latestPrice) {
       return {
@@ -78,7 +74,7 @@ export class WhatsappSmsChannelService {
 
     const priceQuintal = (latestPrice.pricePerKg * 100).toFixed(0);
 
-    const replyText = `🌾 *KrishiSetu Price Intelligence* 🌾\n\n📌 *Crop*: ${crop}\n📍 *District*: ${district}\n🏬 *Market*: ${latestPrice.market}\n\n💰 *Latest Price*: ₹${latestPrice.pricePerKg.toFixed(2)} / kg (₹${priceQuintal} / Quintal)\n📊 *Arrivals*: ${latestPrice.arrivalsKg ? (latestPrice.arrivalsKg / 1000).toFixed(1) + ' Tons' : 'N/A'}\nℹ️ *Source*: ${latestPrice.source} (Live Ingestion Feed)`;
+    const replyText = `KrishiSetu market prices\nCrop: ${crop}\nDistrict: ${district}\nMarket: ${latestPrice.market}\nPrice: INR ${latestPrice.pricePerKg.toFixed(2)}/kg (INR ${priceQuintal}/quintal)\nObserved: ${latestPrice.recordedAt.slice(0,10)}\nStatus: ${feed.mode}\n${feed.warning||'Mean reported modal price across varieties/grades.'}`;
 
     return {
       fromPhone,
