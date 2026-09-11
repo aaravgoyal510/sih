@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Sprout, TrendingUp, LayoutGrid, Receipt, LogOut, Activity } from 'lucide-react';
 import { useLanguage } from '../../../lib/LanguageContext';
+import { API_URL } from '../../../lib/api-config';
 
 interface PartyProfile {
   name: string;
@@ -19,7 +20,7 @@ export default function FarmerHomePage() {
   const [profile, setProfile] = useState<PartyProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+  const backendUrl = API_URL;
 
   useEffect(() => {
     const token = localStorage.getItem('maha_token');

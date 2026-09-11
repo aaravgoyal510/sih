@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, RefreshCw, CheckCircle2, Server } from 'lucide-react';
+import { API_URL } from '../../lib/api-config';
 
 export default function BackendHealthBanner() {
   const [isOffline, setIsOffline] = useState(false);
   const [checking, setChecking] = useState(false);
 
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+  const backendUrl = API_URL;
 
   const checkHealth = async () => {
     setChecking(true);

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, TrendingUp, Search, WifiOff, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../../../lib/LanguageContext';
+import { API_URL } from '../../../lib/api-config';
 import { saveCache, getCache, formatStaleness } from '../../../lib/cache';
 
 interface MandiPriceRecord {
@@ -25,7 +26,7 @@ export default function CheckPricesPage() {
   const [isOffline, setIsOffline] = useState(false);
   const [cachedAt, setCachedAt] = useState<number | null>(null);
 
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+  const backendUrl = API_URL;
 
   const fetchPrices = () => {
     setLoading(true);
