@@ -46,6 +46,22 @@ test('Hindi farmer verification and complaint tracking are guided and persist co
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
 });
 
+test('private document upload is explicit, validates size and downloads through authenticated proxy',async({page})=>{
+ await page.setViewportSize({width:320,height:800});
+ await page.addInitScript(()=>{localStorage.setItem('maha_lang','en');localStorage.setItem('maha_token','fixture');});
+ await page.route('**/workspace/snapshot?section=*',r=>r.fulfill({json:{success:true,party:farmer,verifications:[],disputes:[]}}));
+ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0foAAAAASUVORK5CYII=','base64');let writes=0;
+ await page.route('**/workspace/verification-upload',r=>{writes++;const headers=r.request().headers();expect(headers.authorization).toBe('Bearer fixture');expect(headers['x-document-type']).toBe('LAND_RECORD');expect(headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);expect(r.request().postDataBuffer()).toEqual(png);return r.fulfill({json:{success:true,verification:{id:'private-doc',status:'PENDING',documentRef:'LAND-PRIVATE-001',documentUrl:'storage://verification-documents/private',auditLogs:[]}}});});
+ await page.route('**/workspace/verification/private-doc/document',r=>{expect(r.request().headers().authorization).toBe('Bearer fixture');return r.fulfill({contentType:'image/png',body:png});});
+ await page.goto('/farmer/account');await page.getByLabel('Land record reference').fill('LAND-PRIVATE-001');
+ await page.getByLabel('Upload document (optional)').setInputFiles({name:'too-large.png',mimeType:'image/png',buffer:Buffer.alloc(2*1024*1024+1)});
+ await page.getByRole('button',{name:'Send for review'}).click();await expect(page.getByRole('alert').filter({hasText:'up to 2 MB'})).toBeVisible();expect(writes).toBe(0);
+ await page.getByLabel('Upload document (optional)').setInputFiles({name:'land.png',mimeType:'image/png',buffer:png});expect(writes).toBe(0);await expect(page.getByLabel('Document link (optional)')).toHaveCount(0);
+ await page.getByRole('button',{name:'Send for review'}).click();await expect(page.getByRole('status')).toContainText('submitted for review');expect(writes).toBe(1);
+ const download=page.waitForEvent('download');await page.getByRole('button',{name:'Download private document'}).click();expect((await download).suggestedFilename()).toBe('document-private-doc.png');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+});
+
 test('in-app notifications mark account-level read state and fit a phone',async({page})=>{
  await page.setViewportSize({width:320,height:800});
  await page.addInitScript(p=>{localStorage.setItem('maha_lang','en');localStorage.setItem('maha_token','fixture');localStorage.setItem('maha_party',JSON.stringify(p));},farmer);

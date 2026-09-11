@@ -290,5 +290,19 @@ Object.assign(entries,{
  'Offer price is recorded; grade, pickup and payment terms still need confirmation.':['प्रस्ताव का भाव दर्ज है; गुणवत्ता, उठान और भुगतान की शर्तें पक्की करना बाकी है।','ऑफर दर नोंदवला आहे; गुणवत्ता, उचल आणि पेमेंटच्या अटी निश्चित करणे बाकी आहे.'],
  'Only an unfunded, unstarted booking can be cancelled. The resource becomes available again.':['केवल बिना भुगतान और बिना शुरू हुई बुकिंग रद्द हो सकती है। संसाधन फिर उपलब्ध हो जाएगा।','फक्त निधी न भरलेले आणि काम न सुरू झालेले बुकिंग रद्द करता येते. साधन पुन्हा उपलब्ध होईल.'],
 });
+Object.assign(entries,{
+ 'Upload document (optional)':['दस्तावेज़ अपलोड करें (वैकल्पिक)','कागदपत्र अपलोड करा (ऐच्छिक)'],
+ 'Download private document':['निजी दस्तावेज़ डाउनलोड करें','खाजगी कागदपत्र डाउनलोड करा'],
+ 'Choose a PNG, JPEG or PDF document up to 2 MB.':['2 MB तक की PNG, JPEG या PDF फ़ाइल चुनें।','2 MB पर्यंतची PNG, JPEG किंवा PDF फाइल निवडा.'],
+ 'PNG, JPEG or PDF, up to 2 MB. Private uploads are accessible only to you and authorized reviewers. Files are not virus-scanned; upload documents you trust.':['PNG, JPEG या PDF, अधिकतम 2 MB। निजी फ़ाइलें केवल आप और अधिकृत अधिकारी देख सकते हैं। वायरस जाँच उपलब्ध नहीं है; भरोसेमंद दस्तावेज़ ही अपलोड करें।','PNG, JPEG किंवा PDF, कमाल 2 MB. खाजगी फाइल फक्त तुम्ही आणि अधिकृत अधिकारी पाहू शकतात. व्हायरस तपासणी उपलब्ध नाही; विश्वसनीय कागदपत्रेच अपलोड करा.'],
+ 'Document could not be downloaded. Please sign in and try again.':['दस्तावेज़ डाउनलोड नहीं हुआ। साइन इन करके फिर कोशिश करें।','कागदपत्र डाउनलोड झाले नाही. साइन इन करून पुन्हा प्रयत्न करा.'],
+ 'Private document storage is unavailable. Please try again later.':['निजी दस्तावेज़ संग्रह अभी उपलब्ध नहीं है। थोड़ी देर बाद कोशिश करें।','खाजगी कागदपत्र साठवण सध्या उपलब्ध नाही. थोड्या वेळाने प्रयत्न करा.'],
+ 'This document is already awaiting review':['यह दस्तावेज़ पहले से जाँच के लिए भेजा गया है','हे कागदपत्र आधीच तपासणीसाठी पाठवले आहे'],
+ 'This upload request already has different content.':['इस अनुरोध में अलग दस्तावेज़ पहले भेजा गया था। विवरण जाँचें।','या विनंतीमध्ये वेगळे कागदपत्र आधी पाठवले आहे. तपशील तपासा.'],
+ 'Document type':['दस्तावेज़ का प्रकार','कागदपत्राचा प्रकार'],
+ 'Land record':['भूमि अभिलेख','जमिनीचा उतारा'],
+ 'Registration / document reference':['पंजीकरण / दस्तावेज़ संदर्भ','नोंदणी / कागदपत्र संदर्भ'],
+ 'Submit a document':['दस्तावेज़ भेजें','कागदपत्र सादर करा'],
+});
 export function copy(language:Language,text:string):string { return language==='en'?text:entries[text]?.[language==='hi'?0:1]||text; }
 export const cropNames=['Onion','Tomato','Wheat','Rice','Soybean','Mustard','Grape','Pomegranate','Cotton','Maize'];

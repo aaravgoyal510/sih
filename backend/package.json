@@ -20,6 +20,7 @@
     "job:aggregate-daily-stats": "tsx src/scripts/aggregate-daily-stats.ts",
     "job:escalate-sla": "tsx src/scripts/escalate-sla.ts",
     "test:auth": "tsx src/tests/assisted.integration.ts",
+    "test:documents": "tsx src/tests/verification-files.integration.ts",
     "test:unit": "tsx src/tests/live-market.test.ts && tsx src/tests/trust-score.test.ts && tsx src/tests/recommendation.test.ts && tsx src/tests/matching-feasibility.test.ts",
     "db:upgrade": "tsx src/scripts/product-upgrade.ts --apply",
     "db:check": "tsx src/scripts/product-upgrade.ts"

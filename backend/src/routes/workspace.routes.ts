@@ -1,4 +1,4 @@
-import { Router, Response, NextFunction } from 'express';
+import { Router, Response, NextFunction, raw } from 'express';
 import { PartyRole, ResourceType, Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../config/prisma';
@@ -10,6 +10,7 @@ import { matchingEngine } from '../matching/matching-engine';
 import {scoreTrust} from '../services/trust-score';
 import {makeRecommendation} from '../services/recommendation';
 import {notifyParties,tradeEvent} from '../services/trade-events';
+import {DOCUMENT_BUCKET,MAX_DOCUMENT_BYTES,StorageFailure,documentExtension,storageObjectPath,uploadDocument,downloadDocument} from '../services/verification-storage';
 
 const router = Router();
 const publicUrl=z.string().url().refine(value=>['https:','http:'].includes(new URL(value).protocol),'Use an HTTP or HTTPS document link.');
@@ -341,6 +342,36 @@ router.post('/bookings/:id/dispute', run(async (req, res) => {
   });
   res.status(201).json({ success: true, dispute });
 }));
+router.post('/verification-upload', raw({type:['image/png','image/jpeg','application/pdf'],limit:MAX_DOCUMENT_BYTES}), run(async(req,res)=>{
+  const p=await actor(req);
+  let documentRef='';try{documentRef=decodeURIComponent(req.get('x-document-ref')||'');}catch{throw new Failure(400,'Invalid document reference.');}
+  const input=z.object({role:z.nativeEnum(PartyRole),documentType:z.string(),documentRef:z.string().trim().min(3).max(200),clientRequestId:z.string().uuid()}).parse({role:req.get('x-verification-role'),documentType:req.get('x-document-type'),documentRef,clientRequestId:req.get('x-request-id')});
+  check(p.roles.includes(input.role)&&documents[input.role]?.includes(input.documentType),400,'Select a valid document for your role');
+  const mime=(req.get('content-type')||'').split(';')[0], extension=documentExtension(req.body,mime);
+  check(extension,400,'Choose a PNG, JPEG or PDF document up to 2 MB.');
+  const digest=createHash('sha256').update(`${p.id}:verification:${input.clientRequestId}`).digest('hex');
+  const id=`${digest.slice(0,8)}-${digest.slice(8,12)}-4${digest.slice(13,16)}-a${digest.slice(17,20)}-${digest.slice(20,32)}`;
+  const path=`${p.id}/${id}-${createHash('sha256').update(req.body).digest('hex')}.${extension}`;
+  const documentUrl=`storage://${DOCUMENT_BUCKET}/${path}`;
+  const existing=await prisma.verification.findUnique({where:{id}});
+  if(existing){check(existing.partyId===p.id&&existing.role===input.role&&existing.documentType===input.documentType&&existing.documentRef===input.documentRef&&existing.documentUrl===documentUrl,409,'This upload request already has different content.');res.status(201).json({success:true,verification:existing});return;}
+  check(!p.verifications.some(v=>v.role===input.role&&v.documentType===input.documentType&&['PENDING','ESCALATED'].includes(v.status)),409,'This document is already awaiting review');
+  await uploadDocument(path,req.body,mime);
+  const verification=await serial(async tx=>{
+    const repeated=await tx.verification.findUnique({where:{id}});if(repeated){check(repeated.documentUrl===documentUrl&&repeated.documentRef===input.documentRef&&repeated.role===input.role&&repeated.documentType===input.documentType,409,'This upload request already has different content.');return repeated;}
+    const pending=await tx.verification.count({where:{partyId:p.id,role:input.role,documentType:input.documentType,status:{in:['PENDING','ESCALATED']}}});check(!pending,409,'This document is already awaiting review');
+    const created=await tx.verification.create({data:{id,partyId:p.id,role:input.role,documentType:input.documentType,documentRef:input.documentRef,documentUrl,slaDeadline:new Date(Date.now()+72*3600000),auditLogs:{create:{actorId:p.id,fromStatus:'NONE',toStatus:'PENDING',note:'Private document uploaded by account holder'}}}});
+    await notifyParties(tx,[p.id],`verification:${id}:PENDING`,'VERIFICATION',{reference:id,status:'PENDING'});return created;
+  });
+  res.status(201).json({success:true,verification});
+}));
+router.get('/verification/:id/document',run(async(req,res)=>{
+  const p=await actor(req),v=await prisma.verification.findUnique({where:{id:z.string().uuid().parse(req.params.id)},include:{party:{select:{district:true}}}});
+  check(v&&(v.partyId===p.id||isState(p)||(isAdmin(p)&&v.party.district===p.district)),404,'Document not found.');
+  const path=storageObjectPath(v!.documentUrl||'',v!.partyId);check(path,404,'Private document not found.');
+  const {buffer,mime}=await downloadDocument(path!);
+  res.setHeader('Cache-Control','private, no-store');res.setHeader('Content-Type',mime);res.setHeader('Content-Disposition',`attachment; filename="document-${v!.id}.${path!.split('.').pop()}"`);res.setHeader('X-Content-Type-Options','nosniff');res.send(buffer);
+}));
 router.post('/verification', run(async (req, res) => {
   const p = await actor(req); const input = z.object({ role: z.nativeEnum(PartyRole), documentType: z.string(), documentRef: z.string().min(3).max(200), documentUrl: publicUrl.optional() }).parse(req.body);
   check(p.roles.includes(input.role) && documents[input.role]?.includes(input.documentType), 400, 'Select a valid document for your role');
@@ -443,7 +474,7 @@ router.get('/ads',run(async(req,res)=>{
   res.json({success:true,ads});
 }));
 router.use((err: any, _req: any, res: Response, _next: NextFunction) => {
-  const status = err instanceof Failure ? err.status : err instanceof z.ZodError ? 400 : err.code === 'P2002' ? 409 : 500;
+  const status = err instanceof Failure || err instanceof StorageFailure ? err.status : err.type === 'entity.too.large' ? 413 : err instanceof z.ZodError ? 400 : err.code === 'P2002' ? 409 : 500;
   const error = err instanceof z.ZodError ? err.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ') : status === 500 ? 'The request could not be completed. Please retry.' : err.message;
   if (status === 500) console.error('Workspace request failed:', err.code || err.name, err.code === 'P2028' ? err.meta?.error : '');
   res.status(status).json({ success: false, error });

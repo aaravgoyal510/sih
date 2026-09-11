@@ -16,6 +16,10 @@ Before deploying the upgraded API against an existing database, run `npm --prefi
 
 No database/JWT/API-key secrets belong in frontend settings. BACKEND_URL is a service address, not a credential. Backend credentials remain on Render. Vercel builds fail with an actionable message if the backend is unset, HTTP-only or localhost; local production builds remain supported.
 
+Private verification uploads require `SUPABASE_URL` and `SUPABASE_SECRET_KEY` on the backend only. The first upload creates the private `verification-documents` bucket if absent; a pre-existing public bucket is rejected, not silently reconfigured. Only PNG/JPEG/PDF up to 2 MB are accepted. Keep storage RLS free of policies granting anonymous/general authenticated users access to this bucket: the Express API enforces account and reviewer jurisdiction. Never place the secret key in a NEXT_PUBLIC variable. `npm --prefix backend run test:documents` exercises scoped uploads/downloads against a running API and removes only its own temporary accounts/file. Failed database commits after a storage write can leave an inaccessible orphan object; retention/cleanup and malware scanning remain operational work before real sensitive-document onboarding.
+
+GitHub deployment check on the pushed release reported: `Git author The-arcane must have access to the project on Vercel to create deployments.` The Vercel project owner must grant that account access or initiate an authorized deployment. Changing application code cannot resolve team permissions; do not spoof commit authors. The previously supplied immutable preview URL also requires Vercel SSO, so use an owner-approved public production URL when sharing.
+
 ## Port 3000 tunnel
 
 Run the frontend on 3000 and API on 4000. Without a frontend backend-URL override, Next proxies to `http://127.0.0.1:4000` from the local machine. Tunnel **only port 3000** and open `https://YOUR-TUNNEL/api/backend/health`. The remote browser never calls its own localhost:4000. If frontend env already points to Render, the tunnel uses Render instead; use BACKEND_URL=http://127.0.0.1:4000 in frontend/.env.local for a local API, then restart Next.

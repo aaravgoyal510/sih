@@ -20,5 +20,9 @@ services:
         generateValue: true
       - key: AGMARKNET_API_KEY
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
       - key: DEMO_MODE
         value: "false"

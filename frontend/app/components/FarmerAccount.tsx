@@ -6,17 +6,14 @@ import {useLanguage} from '../../lib/LanguageContext';
 import {copy} from '../../lib/assist-copy';
 import {request,label,ApiError} from '../../lib/workspace';
 import {ReadAloud} from './VoiceControls';
+import {VerificationDocument,VerificationForm} from './VerificationDocument';
 
 export default function FarmerAccount(){
  const {language}=useLanguage(),c=(s:string)=>copy(language,s);
  const [tab,setTab]=useState<'verification'|'disputes'>('verification'),[data,setData]=useState<any>(null),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(''),[notice,setNotice]=useState('');
- const sequence=useRef(0),lock=useRef(false);
+ const sequence=useRef(0);
  async function load(){const ticket=++sequence.current;setLoading(true);setError('');try{const d=await request(`/snapshot?section=${tab}`);if(ticket===sequence.current)setData(d);}catch(e){if(ticket===sequence.current)setError(e instanceof ApiError&&e.status===401?'Please sign in again.':'Check the status before trying again.');}finally{if(ticket===sequence.current)setLoading(false);}}
  useEffect(()=>{setData(null);void load();return()=>{sequence.current++;};},[tab]);
- async function submit(event:React.FormEvent<HTMLFormElement>){event.preventDefault();if(lock.current)return;lock.current=true;setBusy(true);setError('');setNotice('');const form=event.currentTarget,f=new FormData(form);try{
-  const result=await request('/verification','POST',{role:'FARMER',documentType:'LAND_RECORD',documentRef:String(f.get('documentRef')).trim(),...(f.get('documentUrl')?{documentUrl:String(f.get('documentUrl')).trim()}:{})});
-  setData((d:any)=>({...d,verifications:[{...result.verification,party:d.party,auditLogs:result.verification.auditLogs||[]},...d.verifications]}));setNotice('Document submitted for review. This is not automatic government verification.');form.reset();
- }catch(e){setError(e instanceof ApiError&&e.status===401?'Please sign in again.':'Check the status before trying again.');}finally{setBusy(false);lock.current=false;}}
  const date=(value:string)=>new Date(value).toLocaleString(language==='hi'?'hi-IN':language==='mr'?'mr-IN':'en-IN');
  if(data&&!data.party.roles.includes('FARMER'))return <section className="ks-panel"><p>{c('This page is for farmers. Choose your own portal.')}</p><Link href="/demo">{c('Switch portal')}</Link></section>;
  return <div className="ks-assisted" style={{maxWidth:850}}>
@@ -32,16 +29,12 @@ export default function FarmerAccount(){
    <section className="ks-panel" style={{marginTop:20}}><h2>{c('Submit your land record')}</h2>
     <p className="ks-note">{c('Enter the reference shown on your land record. Your district reviewer checks it. Do not share your password or bank details.')}</p>
     <ReadAloud text={c('Enter the reference shown on your land record. Your district reviewer checks it. Do not share your password or bank details.')}/>
-    <form className="ks-form" onSubmit={submit}>
-     <label>{c('Land record reference')}<input name="documentRef" minLength={3} maxLength={200} required autoComplete="off"/></label>
-     <label>{c('Document link (optional)')}<input name="documentUrl" type="url" placeholder="https://…"/></label>
-     <button className="ks-button" disabled={busy}>{c(busy?'Saving…':'Send for review')}</button>
-    </form>
+    <VerificationForm role="FARMER" documents={['LAND_RECORD']} onSubmitted={verification=>{setData((d:any)=>({...d,verifications:[{...verification,party:d.party,auditLogs:verification.auditLogs||[]},...d.verifications]}));setNotice('Document submitted for review. This is not automatic government verification.');}}/>
    </section>
    <section className="ks-panel" style={{marginTop:20}}><h2>{c('Your submitted documents')}</h2>
     {!data.verifications.length?<p>{c('No documents submitted yet.')}</p>:data.verifications.map((v:any)=><article className="ks-update" key={v.id}><div className="ks-section-heading"><strong>{v.documentRef}</strong><span className={`ks-badge ${v.status==='APPROVED'?'good':''}`}>{c(label(v.status))}</span></div>
      {v.slaDeadline&&<p>{c('Review due')}: {date(v.slaDeadline)}</p>}
-     {v.documentUrl&&<a href={v.documentUrl} target="_blank" rel="noreferrer">{c('Open submitted document')}</a>}
+     <VerificationDocument verification={v}/>
      <ReadAloud text={`${c('Status')}: ${c(label(v.status))}. ${v.auditLogs?.map((a:any)=>a.note).join('. ')||''}`}/>
      <details><summary>{c('Recorded activity')}</summary>{v.auditLogs?.map((a:any)=><p key={a.id}>{c(label(a.toStatus))} · {date(a.createdAt)}<br/>{a.note}</p>)}</details>
     </article>)}

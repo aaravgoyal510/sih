@@ -8,6 +8,7 @@ import RoleOverview, { roleWork } from "./RoleOverview";
 import SimpleAgreement from "./SimpleAgreement";
 import FpoMembership from "./FpoMembership";
 import LogisticsNote from "./LogisticsNote";
+import {VerificationDocument,VerificationForm} from './VerificationDocument';
 import {useLanguage} from '../../lib/LanguageContext';
 import {copy} from '../../lib/assist-copy';
 import {
@@ -1245,11 +1246,7 @@ export default function Workspace({
                     ? `Review due ${new Date(v.slaDeadline).toLocaleString()}`
                     : "No SLA deadline"}
                 </small>
-                {v.documentUrl && (
-                  <a href={v.documentUrl} target="_blank" rel="noreferrer">
-                    View submitted document ↗
-                  </a>
-                )}
+                <VerificationDocument verification={v}/>
                 {admin && ["PENDING", "ESCALATED"].includes(v.status) && (
                   <button
                     className="ks-button secondary"
@@ -1284,58 +1281,8 @@ export default function Workspace({
           </section>
           {!admin ? (
             <section className="ks-panel">
-              <h2>Submit a document</h2>
-              <form
-                className="ks-form"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const f = new FormData(e.currentTarget);
-                  await mutate(
-                    "/verification",
-                    "POST",
-                    {
-                      role,
-                      documentType: f.get("documentType"),
-                      documentRef: f.get("documentRef"),
-                      ...(f.get("documentUrl")
-                        ? { documentUrl: f.get("documentUrl") }
-                        : {}),
-                    },
-                    "Document submitted for district verification.",
-                  );
-                }}
-              >
-                <label>
-                  Document type
-                  <select name="documentType">
-                    {(data.documents[role] || []).map((d: string) => (
-                      <option key={d} value={d}>
-                        {label(d)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Registration / document reference
-                  <input
-                    required
-                    minLength={3}
-                    name="documentRef"
-                    placeholder="Enter your registration reference"
-                  />
-                </label>
-                <label>
-                  Document URL (optional)
-                  <input
-                    name="documentUrl"
-                    type="url"
-                    placeholder="https://…"
-                  />
-                </label>
-                <button disabled={busy} className="ks-button">
-                  Submit for review <ArrowRight size={16} />
-                </button>
-              </form>
+              <h2>{c('Submit a document')}</h2>
+              <VerificationForm key={role} role={role} documents={data.documents[role]||[]} onSubmitted={()=>{setNotice(c('Document submitted for review. This is not automatic government verification.'));void reload();}}/>
             </section>
           ) : (
             <aside className="ks-panel ks-dark-panel">

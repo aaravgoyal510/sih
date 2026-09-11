@@ -40,6 +40,8 @@ With both servers running, use another terminal:
 ```sh
 npm run test:api
 npm run test:ui
+# With backend-only Supabase Storage credentials configured:
+npm --prefix backend run test:documents
 ```
 
 Install browser binaries once if needed: `cd frontend`, then `npx playwright install chromium`.
@@ -85,4 +87,4 @@ A service worker serves an offline page with observations and the current accoun
 
 See [DELIVERY.md](DELIVERY.md) for evidence, walkthrough and remaining deployment work. [PRD](PRD.md), [TechSpec](TechSpec.md), [AppFlow](AppFlow.md), [Design](Design.md), [Schema](Schema.md) and [ImplementationPlan](ImplementationPlan.md) describe the broader intended product, not proof that every roadmap item has shipped.
 
-Live payments, SMS/WhatsApp delivery and account recovery, government certificate checks, media/document upload, validated forecasting and production operations require further integration. Legacy FasalRakshak diagnosis is disabled because it presented unsupported confidence/treatment output and unscoped data access; its code and records are retained. In-app notifications persist new offer, booking, logistics and review events with server-side read state; historical events are not backfilled and external push delivery is not integrated. Admin/provider workspaces and parts of verification/dispute handling still contain English copy. Recorded simulated releases never count as verified on-time payments or realized farmer income.
+Live payments, SMS/WhatsApp delivery and account recovery, government certificate checks, general listing media, validated forecasting and production operations require further integration. Verification now supports real private PNG/JPEG/PDF uploads (2 MB maximum), owner/scoped-reviewer downloads, duplicate-request protection and review audit records using server-only Supabase Storage credentials. File signatures are checked; malware scanning is not integrated, so downloads are forced attachments and files must not be treated as trusted merely because they passed format validation. Legacy FasalRakshak diagnosis is disabled because it presented unsupported confidence/treatment output and unscoped data access; its code and records are retained. In-app notifications persist new offer, booking, logistics and review events with server-side read state; historical events are not backfilled and external push delivery is not integrated. Admin/provider workspaces and parts of verification/dispute handling still contain English copy. Recorded simulated releases never count as verified on-time payments or realized farmer income.
