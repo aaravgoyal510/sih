@@ -145,6 +145,15 @@ Four implemented primary farmer entry points: Sell my crop; Market prices and ta
 
 ## 7. Phase focus and milestones
 
+Internal roadmap in plain language (these labels are not farmer UI copy):
+
+1. **Farmer ki kamai badhana** — increase farmer income.
+2. **Sab kuch saaf-saaf dikhana** — show terms, costs and uncertainty clearly.
+3. **Bharosa banana** — build trustworthy buyer and transaction evidence.
+4. **Chhote kisano ko jodna FPO ke through** — use farmer groups (FPOs) where a bigger order can improve individual returns.
+5. **Existing infra ka behtar use** — use storage and transport capacity when it improves the farmer's result.
+6. **Sarkar/state ke liye data insights** — privacy-safe state-level learning from outcomes.
+
 Phase focus: farmer income → transparency → trust → FPO aggregation → infrastructure utilization → state intelligence
 
 1. Farmer income: costed sell-now comparisons and outcome capture; no unsupported uplift claim.

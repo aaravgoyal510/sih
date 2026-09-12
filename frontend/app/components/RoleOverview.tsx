@@ -30,9 +30,9 @@ export const roleWork: Record<
   }
 > = {
   BUYER: {
-    title: "Procurement desk",
+    title: "Buying desk",
     description:
-      "Match your crop requirements, negotiate rates and track incoming deliveries.",
+      "Find the crop you need, agree on a price and track delivery.",
     create: "Post demand",
     market: "Source produce",
     unit: "requirements",
@@ -40,41 +40,41 @@ export const roleWork: Record<
     icon: ShoppingBasket,
   },
   FPO_ADMIN: {
-    title: "Member harvest desk",
+    title: "Group selling",
     description:
-      "Combine compatible member harvests and negotiate one bulk order.",
+      "Help nearby farmers sell their harvest together for a better price.",
     create: "Publish pooled supply",
     market: "Buyer demand",
-    unit: "member lots",
+    unit: "farmer harvests",
     field: "quantityKg",
     icon: Users,
   },
   STORAGE_OPERATOR: {
-    title: "Storage capacity desk",
+    title: "Storage space",
     description:
-      "Manage crop-compatible space, storage requests and intake bookings.",
-    create: "Add storage capacity",
+      "Show your empty storage space and manage farmer bookings.",
+    create: "Add storage space",
     market: "Storage requests",
-    unit: "quintals offered",
+    unit: "storage space offered",
     field: "capacityQuintal",
     type: "COLD_STORAGE",
     icon: Warehouse,
   },
   TRANSPORT_OPERATOR: {
-    title: "Dispatch desk",
+    title: "Vehicle work",
     description:
-      "Match crop pickup requests to your routes, vehicle capacity and delivery jobs.",
+      "Offer your vehicle to move crops from farms to markets.",
     create: "Add vehicle & route",
     market: "Transport requests",
-    unit: "kg vehicle capacity",
+    unit: "vehicle space (kg)",
     field: "capacityKg",
     type: "TRANSPORT",
     icon: Truck,
   },
   EQUIPMENT_PROVIDER: {
-    title: "Equipment rental desk",
+    title: "Machine work",
     description:
-      "Publish machine/operator packages and manage hired equipment jobs.",
+      "List your tractor or machine and manage farm-work bookings.",
     create: "Add machine package",
     market: "Equipment requests",
     unit: "machine packages",
@@ -83,9 +83,9 @@ export const roleWork: Record<
     icon: Tractor,
   },
   LABOR_CONTRACTOR: {
-    title: "Crew scheduling desk",
+    title: "Worker help",
     description:
-      "Offer crews for the right farm tasks and track confirmed work.",
+      "Help farmers find workers for seasonal farm work.",
     create: "Add crew availability",
     market: "Labor requests",
     unit: "workers offered",
@@ -94,9 +94,9 @@ export const roleWork: Record<
     icon: Users,
   },
   INPUT_SUPPLIER: {
-    title: "Farm supplies desk",
+    title: "Seeds and fertilizer",
     description:
-      "Respond to group-buy demand and fulfill seed and input orders.",
+      "Sell seeds, fertilizer and farm supplies to nearby farmers.",
     create: "Add supply offer",
     market: "Input requests",
     unit: "units offered",
@@ -105,21 +105,21 @@ export const roleWork: Record<
     icon: Package,
   },
   DISTRICT_ADMIN: {
-    title: "District case desk",
+    title: "District Office",
     description:
-      "Review local verification and grievances. Resolve urgent cases before their deadline.",
+      "Help with local checks and complaints.",
     create: "Review verification",
-    market: "District disputes",
+    market: "District complaints",
     unit: "pending cases",
     field: "",
     icon: ShieldCheck,
   },
   STATE_ADMIN: {
-    title: "State escalation desk",
+    title: "State Office",
     description:
-      "Resolve escalations and inspect district-level evidence and integration failures.",
+      "See state-wide updates and unresolved problems.",
     create: "Review escalations",
-    market: "State intelligence",
+    market: "State updates",
     unit: "escalated cases",
     field: "",
     icon: Landmark,

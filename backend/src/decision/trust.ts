@@ -24,7 +24,13 @@ export async function recomputeTrustBatch(tx:DecisionDb,ids:string[],now=new Dat
     if(due.dueAt!<=now||paidAt){eligiblePayments++;if(paidAt&&paidAt<=due.dueAt!)onTimePayments++;}
     if(paidAt)evidencedPaid=true;
    }
-   if(b.fulfillmentStatus==='COMPLETED'&&evidencedPaid){totalTransactions++;ratingValues.push(...b.ratings.filter(r=>r.giverPartyId===b.offer.listing.partyId&&r.receiverPartyId===party.id).map(r=>r.score));}
+   // A farmer can rate after delivery is completed. Keep payment reliability strict
+   // (it still requires an attested receipt), but do not discard that independent
+   // counterpart feedback merely because payment evidence is not yet available.
+   if(b.fulfillmentStatus==='COMPLETED'){
+    ratingValues.push(...b.ratings.filter(r=>r.giverPartyId===b.offer.listing.partyId&&r.receiverPartyId===party.id).map(r=>r.score));
+    if(evidencedPaid) totalTransactions++;
+   }
    const decisions=events.filter(e=>e.kind==='DISPUTE_OUTCOME'&&!e.simulation&&(e.payload as any).atFaultPartyId===party.id);
    for(const decision of decisions){
     const appeal=events.filter(e=>e.kind==='DISPUTE_APPEAL'&&e.relatedEventId===decision.id).at(-1);

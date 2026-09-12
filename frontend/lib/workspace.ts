@@ -52,9 +52,9 @@ export const resourceLabels: Record<string,string> = {
   LABOR: 'Labor crews', USED_EQUIPMENT: 'Used equipment', INPUT_GROUP_BUY: 'Input group buying', CONTRACT_FARMING: 'Contract farming',
 };
 export const roleLabels: Record<string,string> = {
-  FARMER: 'Farmer', FPO_ADMIN: 'FPO aggregator', BUYER: 'Buyer', STORAGE_OPERATOR: 'Storage operator', TRANSPORT_OPERATOR: 'Transport operator',
-  EQUIPMENT_PROVIDER: 'Equipment provider', LABOR_CONTRACTOR: 'Labor contractor', INPUT_SUPPLIER: 'Input supplier',
-  DISTRICT_ADMIN: 'District administration', STATE_ADMIN: 'State command', PLATFORM_ADMIN: 'Platform administration',
+  FARMER: 'Farmer (Kisan)', FPO_ADMIN: 'Group Selling (Kisan Samuh)', BUYER: 'Buyer', LOCAL_BUYER: 'Local Buyer', BULK_BUYER: 'Bulk Buyer', STORAGE_OPERATOR: 'Storage Owner (Godown Wala)', TRANSPORT_OPERATOR: 'Transport Owner (Gaadi Wala)',
+  EQUIPMENT_PROVIDER: 'Machine Owner (Machine Wala)', LABOR_CONTRACTOR: 'Labor Provider (Mazdoor Uplabdh Karayen)', INPUT_SUPPLIER: 'Seed & Fertilizer Supplier (Beej-Khaad Wala)',
+  DISTRICT_ADMIN: 'District Office (Zila Karyalay)', STATE_ADMIN: 'State Office (Rajya Karyalay)', PLATFORM_ADMIN: 'Platform administration',
 };
 export const money = (n: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n || 0);
 export const label = (s: string) => (s || '').replaceAll('_',' ').toLowerCase().replace(/^./,c => c.toUpperCase());

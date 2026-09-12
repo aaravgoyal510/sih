@@ -20,17 +20,19 @@ export function TrustScoreBadge({ trust }: { trust: TrustScore }) {
 export default function TrustScoreCard({ trust,buyerName }: { trust: TrustScore;buyerName?:string }) {
   const {language}=useLanguage(),c=(s:string)=>copy(language,s);
   const buyer = trust.role === 'BUYER';
+  const hindi=language==='hi';
+  const trustLabel=trust.tier==='HIGH_TRUST'?'Bharosemand':trust.tier==='MEDIUM_TRUST'?'Theek-Thaak':'Savdhaan';
   const reliability = buyer ? trust.onTimePaymentPct : trust.onTimeFulfillmentPct;
   const metrics = [
-    ['Verified KYC', trust.kycVerified ? 'Verified' : 'Not verified'],
-    ['Transactions', String(trust.totalTransactions)],
-    [buyer ? 'On-time payments' : 'On-time fulfillment', reliability === null ? 'Not enough evidence' : `${reliability}%`],
-    ['Disputes', String(trust.disputesCount)],
-    ['Cancelled orders', String(trust.cancelledOrdersCount)],
-    [buyer ? 'Farmer rating' : 'Buyer rating', trust.counterpartRating === null ? 'Not enough evidence' : `${trust.counterpartRating}/5`],
+    [hindi?'ID verified':'Verified KYC', trust.kycVerified ? (hindi?'haan':'Verified') : (hindi?'nahi':'Not verified')],
+    [hindi?'Saude':'Transactions', String(trust.totalTransactions)],
+    [hindi?'Time par payment':buyer ? 'On-time payments' : 'On-time fulfillment', reliability === null ? (hindi?'jaankari nahi':'Not enough evidence') : `${reliability}%`],
+    [hindi?'Shikayatein':'Disputes', String(trust.disputesCount)],
+    [hindi?'Order cancel':'Cancelled orders', String(trust.cancelledOrdersCount)],
+    [hindi?'Kisan rating':buyer ? 'Farmer rating' : 'Buyer rating', trust.counterpartRating === null ? (hindi?'jaankari nahi':'Not enough evidence') : `${trust.counterpartRating}/5`],
   ];
   return <section className={styles.trust} aria-label={`${buyer ? 'Buyer' : 'Farmer'} Trust Score`}>
-    <p className={styles.trustTitle}>{buyer&&<>{buyerName?`${buyerName} (${buyerTypeLabel(trust.buyerType)})`:`${buyerTypeLabel(trust.buyerType)}`} — </>}{c(buyer ? 'Buyer Trust Score' : 'Farmer Trust Score')}</p>
+    <p className={styles.trustTitle}>{buyer&&<>{buyerName?`${buyerName} (${buyerTypeLabel(trust.buyerType)})`:`${buyerTypeLabel(trust.buyerType)}`} — </>}{hindi&&buyer?`${trust.score}/100 — ${trustLabel}`:c(buyer ? 'Buyer Trust Score' : 'Farmer Trust Score')}</p>
     <TrustScoreBadge trust={trust} />
     <dl className={styles.metrics}>{metrics.map(([label, value]) =>
       <div key={label}><dt>{c(label)}</dt><dd>{c(value)}</dd></div>)}</dl>
