@@ -41,9 +41,6 @@ model Party {
   buyerRecommendations Recommendation[]   @relation("BuyerRecommendations")
   trustScores          TrustScore[]
   notifications        Notification[]
-  decisionQuotes       DecisionQuote[]
-  decisionRuns         DecisionRun[]
-  trustHistory         TrustHistory[]
 }
 
 enum TrustRole {
@@ -84,18 +81,6 @@ model Recommendation {
   explanationVersion String
   createdAt          DateTime           @default(now())
   validUntil         DateTime
-  runId              String?
-  run                DecisionRun? @relation(fields: [runId], references: [id], onDelete: Restrict)
-  quoteId            String?
-  quote              DecisionQuote? @relation(fields: [quoteId], references: [id], onDelete: Restrict)
-  scenarioStatus     String? // Legacy records remain null; READY / EXPIRED / INVALIDATED
-  formulaVersion     String?
-  evidenceHash       String?
-  sharedFpoId        String?
-  poolPlanId         String?
-  poolPlan           PoolPlan? @relation(fields: [poolPlanId], references: [id], onDelete: Restrict)
-  selection          DecisionSelection?
-  poolConsent        PoolConsent?
 
   @@index([farmerPartyId, createdAt])
   @@index([listingId, validUntil])
@@ -207,16 +192,11 @@ model Listing {
 
   offers          Offer[]
   recommendations Recommendation[]
-  decisionRuns    DecisionRun[]
-  decisionQuotes  DecisionQuote[] @relation("QuoteLot")
-  serviceQuotes   DecisionQuote[] @relation("QuoteService")
-  poolPlan        PoolPlan?
 
   @@index([partyId, status, createdAt])
 }
 
 enum ListingStatus {
-  DRAFT
   OPEN
   POOLED
   MATCHED
@@ -252,7 +232,6 @@ model Offer {
   status        OfferStatus  @default(PENDING)
   createdAt     DateTime     @default(now())
   booking       Booking?
-  decisionQuote DecisionQuote?
 
   @@index([listingId, status])
   @@index([requirementId, status])
@@ -284,156 +263,6 @@ model Booking {
   cancelledById      String?
   cancellationReason String?
   events             BookingEvent[]
-  decisionSelections DecisionSelection[]
-  outcomeEvents      BookingOutcomeEvent[]
-  providerReservations DecisionReservation[]
-}
-
-model DecisionRun {
-  id String @id @default(uuid())
-  farmerPartyId String
-  farmer Party @relation(fields: [farmerPartyId], references: [id], onDelete: Restrict)
-  listingId String
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Restrict)
-  requestKey String
-  inputHash String
-  input Json
-  status String
-  diagnostics Json
-  createdAt DateTime @default(now())
-  recommendations Recommendation[]
-  @@unique([farmerPartyId, requestKey])
-  @@index([farmerPartyId, createdAt])
-}
-
-model DecisionQuote {
-  id String @id @default(uuid())
-  kind String // SALE / TRANSPORT / STORAGE
-  issuerPartyId String
-  issuer Party @relation(fields: [issuerPartyId], references: [id], onDelete: Restrict)
-  listingId String
-  listing Listing @relation("QuoteLot", fields: [listingId], references: [id], onDelete: Restrict)
-  serviceListingId String?
-  serviceListing Listing? @relation("QuoteService", fields: [serviceListingId], references: [id], onDelete: Restrict)
-  offerId String? @unique
-  offer Offer? @relation(fields: [offerId], references: [id], onDelete: Restrict)
-  quantityGrams BigInt
-  unitPricePaise BigInt
-  priceBasis String // PER_KG / TOTAL / PER_KG_DAY
-  route String // BUYER / MARKET / FPO / TRANSPORT / STORAGE
-  origin String
-  destination String
-  startAt DateTime
-  endAt DateTime
-  paymentDueAt DateTime?
-  validUntil DateTime
-  status String @default("ACTIVE")
-  evidence Json
-  createdAt DateTime @default(now())
-  recommendations Recommendation[]
-  reservations DecisionReservation[]
-  @@index([listingId, kind, status, validUntil])
-  @@index([issuerPartyId, createdAt])
-}
-
-model DecisionSelection {
-  id String @id @default(uuid())
-  recommendationId String @unique
-  recommendation Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Restrict)
-  actorId String
-  selectedAt DateTime @default(now())
-  evidenceHash String
-  bookingId String?
-  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: Restrict)
-  linkedAt DateTime?
-  @@index([bookingId])
-}
-
-model DecisionReservation {
-  id String @id @default(uuid())
-  quoteId String
-  quote DecisionQuote @relation(fields: [quoteId], references: [id], onDelete: Restrict)
-  bookingId String
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
-  createdAt DateTime @default(now())
-  releasedAt DateTime?
-  @@unique([quoteId, bookingId])
-}
-
-model PoolPlan {
-  id String @id @default(uuid())
-  fpoId String
-  administratorId String
-  listingId String @unique
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Restrict)
-  members Json // Immutable lot/owner/quantity snapshots; no implicit consent
-  status String @default("DRAFT")
-  createdAt DateTime @default(now())
-  executedAt DateTime?
-  recommendations Recommendation[]
-  consents PoolConsent[]
-  @@index([fpoId, status])
-}
-
-model PoolConsent {
-  id String @id @default(uuid())
-  poolPlanId String
-  poolPlan PoolPlan @relation(fields: [poolPlanId], references: [id], onDelete: Restrict)
-  listingId String
-  farmerPartyId String
-  recommendationId String @unique
-  recommendation Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Restrict)
-  createdAt DateTime @default(now())
-  @@unique([poolPlanId, listingId])
-}
-
-model BookingOutcomeEvent {
-  id String @id @default(uuid())
-  bookingId String
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
-  kind String
-  actorId String
-  responsiblePartyId String
-  amountPaise BigInt?
-  occurredAt DateTime
-  dueAt DateTime?
-  evidenceRef String?
-  simulation Boolean
-  evidenceLevel String // SIMULATED / SELF_REPORTED / COUNTERPARTY_ATTESTED
-  idempotencyKey String
-  relatedEventId String?
-  relatedEvent BookingOutcomeEvent? @relation("OutcomeCorrection", fields: [relatedEventId], references: [id], onDelete: Restrict)
-  relatedEvents BookingOutcomeEvent[] @relation("OutcomeCorrection")
-  payload Json
-  createdAt DateTime @default(now())
-  @@unique([bookingId, actorId, idempotencyKey])
-  @@index([bookingId, occurredAt])
-  @@index([responsiblePartyId, kind])
-}
-
-model TrustHistory {
-  id String @id @default(uuid())
-  partyId String
-  party Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
-  evidenceHash String
-  snapshot Json
-  legacySnapshot Json
-  formulaVersion String
-  createdAt DateTime @default(now())
-  @@unique([partyId, evidenceHash])
-  @@index([partyId, createdAt])
-}
-
-model DecisionJob {
-  id String @id @default(uuid())
-  eventKey String @unique
-  kind String
-  targetId String
-  attempts Int @default(0)
-  completedAt DateTime?
-  lastError String?
-  createdAt DateTime @default(now())
-  @@index([completedAt, createdAt])
 }
 
 enum FulfillmentStatus {
