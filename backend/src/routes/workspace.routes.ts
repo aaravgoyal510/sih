@@ -11,6 +11,9 @@ import {scoreTrust} from '../services/trust-score';
 import {makeRecommendation} from '../services/recommendation';
 import {notifyParties,tradeEvent} from '../services/trade-events';
 import {DOCUMENT_BUCKET,MAX_DOCUMENT_BYTES,StorageFailure,documentExtension,storageObjectPath,uploadDocument,downloadDocument} from '../services/verification-storage';
+import decisionRoutes from '../decision/routes';
+import {DecisionError} from '../decision/core';
+import {decisionsForAcceptance,linkDecisions,releaseDecisionCapacity} from '../decision/execution';
 
 const router = Router();
 const publicUrl=z.string().url().refine(value=>['https:','http:'].includes(new URL(value).protocol),'Use an HTTP or HTTPS document link.');
@@ -21,7 +24,7 @@ const adminRoles = ['DISTRICT_ADMIN', 'STATE_ADMIN', 'PLATFORM_ADMIN'];
 const isAdmin = (p: any) => p.roles.some((r: string) => adminRoles.includes(r));
 const isState = (p: any) => p.roles.some((r: string) => ['STATE_ADMIN', 'PLATFORM_ADMIN'].includes(r));
 const publicParty = { id: true, name: true, district: true, roles: true, credibility: true } as const;
-const offerInclude = { listing: { include: { party: { select: publicParty } } }, requirement: { include: { party: { select: publicParty } } }, booking: { include: { dispute: true, ratings: true, events:{orderBy:{createdAt:'desc'},take:20} } } } as const;
+const offerInclude = { decisionQuote:{select:{id:true,status:true,validUntil:true,recommendations:{where:{selection:{isNot:null}},select:{id:true,farmerPartyId:true,selection:{select:{id:true,bookingId:true,selectedAt:true}}}}}},listing: { include: { party: { select: publicParty } } }, requirement: { include: { party: { select: publicParty } } }, booking: { include: { dispute: true, ratings: true, events:{orderBy:{createdAt:'desc'},take:20} } } } as const;
 const documents: Record<string, string[]> = {
   STORAGE_OPERATOR: ['WDRA_LICENSE', 'STORAGE_PERMIT', 'GST'], TRANSPORT_OPERATOR: ['TRANSPORT_PERMIT', 'VEHICLE_FITNESS_CERT', 'GST'],
   EQUIPMENT_PROVIDER: ['MACHINE_REG', 'GST'], LABOR_CONTRACTOR: ['LABOR_REGISTRATION'], INPUT_SUPPLIER: ['PESTICIDE_DEALER_LICENSE', 'GST'],
@@ -62,6 +65,7 @@ router.post('/demo-session', run(async (req, res) => {
   res.json({ success: true, token, party: profile });
 }));
 router.use(authenticateToken);
+router.use(decisionRoutes);
 router.post('/recommendations/preview',run(async(req,res)=>{
   const paise=z.number().int().min(0).max(1e12);
   const input=z.object({listingId:z.string().uuid(),requirementId:z.string().uuid(),offerId:z.string().uuid().optional(),transportPaise:paise,otherCostsPaise:paise,baselineNetPaise:z.number().int().min(-1e12).max(1e12).optional()}).parse(req.body);
@@ -248,7 +252,7 @@ router.post('/offers', run(async (req, res) => {
   res.status(201).json({ success: true, offer });
 }));
 router.patch('/offers/:id', run(async (req, res) => {
-  const p = await actor(req); const input = z.object({ action: z.enum(['ACCEPT','REJECT','COUNTER']), price: z.number().positive().finite().optional() }).parse(req.body);
+  const p = await actor(req); const input = z.object({ action: z.enum(['ACCEPT','REJECT','COUNTER']), price: z.number().positive().finite().optional(),recommendationId:z.string().uuid().optional() }).parse(req.body);
   const offer = await serial(async tx => {
     const o = await tx.offer.findUnique({ where: { id: String(req.params.id) }, include: offerInclude });
     check(o && (o.listing.partyId === p.id || o.requirement?.partyId === p.id), 403, 'You are not a party to this offer');
@@ -268,6 +272,7 @@ router.patch('/offers/:id', run(async (req, res) => {
       await tradeEvent(tx,p.id,countered,'COUNTER');return countered;
     }
     if (input.action === 'ACCEPT') {
+      const decision=await decisionsForAcceptance(tx,current,input.recommendationId);
       check((seller && current.status === 'PENDING') || (!seller && current.status === 'COUNTERED'), 403, 'The receiving party must accept this offer');
       if (current.requirementId) check(!await tx.offer.findFirst({ where: { requirementId: current.requirementId, status: 'ACCEPTED' } }), 409, 'This requirement has already been fulfilled');
       const qty = current.requirement?.quantityNeeded || 1;
@@ -284,7 +289,8 @@ router.patch('/offers/:id', run(async (req, res) => {
       }
       const totalPaise=Math.round(current.price*qty*100);check(Number.isSafeInteger(totalPaise),400,'Trade value exceeds supported limits.');
       const agreementSnapshot={version:1,acceptedAt:new Date().toISOString(),acceptedBy:p.id,offerId:current.id,listingId:current.listingId,quantity:qty,pricePerUnit:current.price,unit:current.listing.priceUnit||'flat',resourceType:current.listing.resourceType,resource:current.listing.attributes as Prisma.JsonObject,seller:{id:current.listing.partyId,name:current.listing.party.name},buyer:{id:current.requirement!.partyId,name:current.requirement!.party.name},totalAmountPaise:totalPaise,paymentMode:'SIMULATED',deliveryTerms:'Not agreed at acceptance'};
-      await tx.booking.create({ data: { offerId: current.id, totalAmount: totalPaise/100,agreementSnapshot } });
+      const createdBooking=await tx.booking.create({ data: { offerId: current.id, totalAmount: totalPaise/100,agreementSnapshot,paymentDueAt:decision.quote?.paymentDueAt,deliveryDueAt:decision.quote?.endAt } });
+      await linkDecisions(tx,createdBooking,decision);
       await tx.listing.update({ where: { id: current.listingId }, data: { status: 'BOOKED' } });
       await tx.offer.updateMany({ where: { OR: [{ listingId: current.listingId }, ...(current.requirementId ? [{ requirementId: current.requirementId }] : [])], id: { not: current.id }, status: { in: ['PENDING','COUNTERED'] } }, data: { status: 'REJECTED' } });
     }
@@ -314,6 +320,7 @@ router.post('/bookings/:id/action', run(async (req, res) => {
     if (action === 'COMPLETE') { check(seller && current.fulfillmentStatus === 'IN_PROGRESS', 409, 'Start fulfillment before completing'); data.fulfillmentStatus = 'COMPLETED'; await tx.listing.update({ where: { id: current.offer.listingId }, data: { status: 'COMPLETED' } }); }
     if (action === 'RELEASE') { check(buyer && current.paymentStatus === 'ESCROWED' && current.fulfillmentStatus === 'COMPLETED', 409, 'Buyer can release only after fulfillment'); data.paymentStatus = 'RELEASED'; }
     const updated = await tx.booking.update({ where: { id: current.id }, data });
+    if(['CANCEL','COMPLETE'].includes(action))await releaseDecisionCapacity(tx,current.id);
     await tradeEvent(tx,p.id,{...current.offer,status:action==='CANCEL'?'REJECTED':current.offer.status,booking:updated},action);
     if (['FUND','RELEASE'].includes(action)) await tx.portalSyncLog.create({ data: { portal: 'PAYMENT_GW', tier: 3, status: 'STUBBED', message: `Simulated ${action} for booking ${current.id}; no money moved.` } });
     return tx.booking.findUnique({where:{id:updated.id},include:{events:{orderBy:{createdAt:'desc'},take:20}}});
@@ -474,7 +481,7 @@ router.get('/ads',run(async(req,res)=>{
   res.json({success:true,ads});
 }));
 router.use((err: any, _req: any, res: Response, _next: NextFunction) => {
-  const status = err instanceof Failure || err instanceof StorageFailure ? err.status : err.type === 'entity.too.large' ? 413 : err instanceof z.ZodError ? 400 : err.code === 'P2002' ? 409 : 500;
+  const status = err instanceof Failure || err instanceof StorageFailure || err instanceof DecisionError ? err.status : err.type === 'entity.too.large' ? 413 : err instanceof z.ZodError ? 400 : err.code === 'P2002' ? 409 : 500;
   const error = err instanceof z.ZodError ? err.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ') : status === 500 ? 'The request could not be completed. Please retry.' : err.message;
   if (status === 500) console.error('Workspace request failed:', err.code || err.name, err.code === 'P2028' ? err.meta?.error : '');
   res.status(status).json({ success: false, error });
