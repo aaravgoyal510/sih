@@ -1,0 +1,78 @@
+// Historical design fragment. The active ../schema.prisma now implements these
+// entities with nullable unknown baselines and additional operational event models.
+// Use the active schema and migrations, not this fragment, for deployment.
+// Merge these declarations with schema.prisma and the Party backrelations in Schema.md.
+// JSON payload contracts: frontend/lib/decision-platform.ts; enforce with server Zod.
+
+enum TrustRole {
+  BUYER
+  FARMER
+}
+
+enum TrustTier {
+  HIGH_TRUST
+  MEDIUM_TRUST
+  LOW_TRUST
+}
+
+enum RecommendationRisk {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Recommendation {
+  id                String             @id @default(uuid())
+  farmerPartyId     String
+  farmer            Party              @relation("FarmerRecommendations", fields: [farmerPartyId], references: [id], onDelete: Restrict)
+  buyerPartyId      String?
+  buyer             Party?             @relation("BuyerRecommendations", fields: [buyerPartyId], references: [id], onDelete: Restrict)
+  listingId         String
+  listing           Listing            @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  what              Json
+  why               Json
+  risk              RecommendationRisk
+  riskBasis         Json               // Nonempty array of evidence-backed explanations
+  what_if_wait      Json               // AVAILABLE scenario or UNAVAILABLE with reason
+  expectedNetPaise   BigInt
+  baselineNetPaise   BigInt
+  deltaPaise         BigInt             // expectedNetPaise - baselineNetPaise
+  trustSnapshot     Json?              // Immutable public-safe score, metrics, asOf/version
+  inputSnapshot     Json               // Quantity/grade, quotes/costs/source dates and assumptions
+  explanationVersion String
+  createdAt         DateTime           @default(now())
+  validUntil        DateTime
+
+  @@index([farmerPartyId, createdAt])
+  @@index([listingId, validUntil])
+}
+
+model TrustScore {
+  id                       String    @id @default(uuid())
+  partyId                  String
+  party                    Party     @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  role                     TrustRole
+  score                    Int       // 0..100, constrained in reviewed SQL/API validation
+  tier                     TrustTier
+  kycVerified              Boolean   @default(false)
+  totalTransactions        Int       @default(0) // Completed, not listings/offers
+  eligibleOrders           Int       @default(0)
+  onTimePayments           Int       @default(0)
+  eligiblePayments         Int       @default(0)
+  onTimePaymentPct         Float?    // Null without evidence; BUYER only
+  onTimeFulfillmentPct     Float?    // FARMER only; policy pending approval
+  disputesCount            Int       @default(0) // Filed cases; not guilt
+  confirmedAtFaultDisputes Int       @default(0)
+  cancelledOrdersCount     Int       @default(0) // Attributable cancellations
+  counterpartRating       Float?    // 1..5; null with no verified ratings
+  ratingCount              Int       @default(0)
+  provisional              Boolean   @default(true)
+  suspended                Boolean   @default(false)
+  formulaVersion           String
+  evidenceSnapshot         Json      // Public metrics separated from restricted evidence refs
+  asOf                     DateTime
+  updatedAt                DateTime  @updatedAt
+
+  @@unique([partyId, role])
+  @@index([role, tier, suspended])
+}

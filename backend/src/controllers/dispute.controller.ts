@@ -250,7 +250,7 @@ export const reviewDispute = async (req: Request, res: Response): Promise<void> 
       },
     });
 
-    let updatedCredibility = null;
+    let updatedCredibility: any = null;
 
     // If RESOLVED and atFaultPartyId specified, update CredibilityScore
     if (action === 'RESOLVE' && atFaultPartyId) {

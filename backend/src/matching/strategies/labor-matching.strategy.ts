@@ -61,9 +61,15 @@ export class LaborMatchingStrategy implements MatchingStrategy {
         );
 
         return {
-          listing: candidate,
+          listingId: candidate.id,
+          title: `${listingCrewSize} person crew: ${listingTaskType}`,
+          resourceType: candidate.resourceType,
+          district: candidate.district,
+          price: candidate.price || 0,
+          partyName: candidate.party.name,
+          credibilityScore: candidate.party.credibility?.score || 50,
           score: totalScore,
-          scoreBreakdown: {
+          subScores: {
             crewSizeFit: crewSizeScore,
             taskTypeMatch: taskTypeScore,
             distance: distanceScore,

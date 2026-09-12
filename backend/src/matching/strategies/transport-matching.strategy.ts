@@ -7,7 +7,7 @@ export class TransportMatchingStrategy implements MatchingStrategy {
     const reqFrom = (reqAttrs.from || reqAttrs.route?.from || requirement.district || '').toLowerCase();
     const reqTo = (reqAttrs.to || reqAttrs.route?.to || '').toLowerCase();
     const reqCap = Number(reqAttrs.capacityKg || reqAttrs.requiredCapacityKg || 0);
-    const reqPrice = Number(requirement.targetPricePerKg || reqAttrs.maxPricePerTrip || 0);
+    const reqPrice = Number(requirement.budget || reqAttrs.maxPricePerTrip || 0);
 
     const scored: MatchCandidateResult[] = [];
 

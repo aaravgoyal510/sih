@@ -29,6 +29,7 @@ export class MatchingEngine {
    * and scores all active candidate listings.
    */
   public async matchRequirement(requirement: Requirement): Promise<MatchCandidateResult[]> {
+    if(requirement.deadline&&requirement.deadline<=new Date())return [];
     const strategy = this.strategies.get(requirement.resourceType);
     if (!strategy) {
       throw new Error(`No matching strategy registered for resourceType: ${requirement.resourceType}`);
@@ -39,6 +40,9 @@ export class MatchingEngine {
       where: {
         resourceType: requirement.resourceType,
         status: 'OPEN',
+        partyId: { not: requirement.partyId },
+        party:{OR:[{credibility:null},{credibility:{suspended:false}}]},
+        OR:[{availableTo:null},{availableTo:{gt:new Date()}}],
       },
       include: {
         party: {
@@ -47,6 +51,8 @@ export class MatchingEngine {
           },
         },
       },
+      orderBy:{createdAt:'desc'},
+      take:500,
     })) as ListingWithParty[];
 
     return strategy.scoreCandidates(requirement, candidates);

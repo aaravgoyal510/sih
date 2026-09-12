@@ -5,7 +5,8 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
 }
 
 model User {
@@ -18,24 +19,128 @@ model User {
 }
 
 model Party {
-  id         String      @id @default(uuid())
-  userId     String      @unique
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String
-  district   String
-  village    String?
-  roles      PartyRole[]
-  fpoId      String?
-  fpo        Fpo?        @relation(fields: [fpoId], references: [id])
+  id       String      @id @default(uuid())
+  userId   String      @unique
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name     String
+  district String
+  village  String?
+  roles    PartyRole[]
+  fpoId    String?
+  fpo      Fpo?        @relation(fields: [fpoId], references: [id])
 
-  listings          Listing[]
-  requirements      Requirement[]
-  verifications     Verification[]
-  credibility       CredibilityScore?
-  warehouseReceipts WarehouseReceipt[]
-  marketplaceAds    MarketplaceAd[]
-  farmActivities    FarmActivityLog[]
-  cropIssueReports  CropIssueReport[]
+  listings             Listing[]
+  requirements         Requirement[]
+  verifications        Verification[]
+  credibility          CredibilityScore?
+  warehouseReceipts    WarehouseReceipt[]
+  marketplaceAds       MarketplaceAd[]
+  farmActivities       FarmActivityLog[]
+  cropIssueReports     CropIssueReport[]
+  recommendations      Recommendation[]   @relation("FarmerRecommendations")
+  buyerRecommendations Recommendation[]   @relation("BuyerRecommendations")
+  trustScores          TrustScore[]
+  notifications        Notification[]
+}
+
+enum TrustRole {
+  BUYER
+  FARMER
+}
+
+enum TrustTier {
+  HIGH_TRUST
+  MEDIUM_TRUST
+  LOW_TRUST
+}
+
+enum RecommendationRisk {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Recommendation {
+  id                 String             @id @default(uuid())
+  farmerPartyId      String
+  farmer             Party              @relation("FarmerRecommendations", fields: [farmerPartyId], references: [id], onDelete: Restrict)
+  buyerPartyId       String?
+  buyer              Party?             @relation("BuyerRecommendations", fields: [buyerPartyId], references: [id], onDelete: Restrict)
+  listingId          String
+  listing            Listing            @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  what               Json
+  why                Json
+  risk               RecommendationRisk
+  riskBasis          Json // Nonempty array of evidence-backed explanations
+  what_if_wait       Json // AVAILABLE scenario or UNAVAILABLE with reason
+  expectedNetPaise   BigInt
+  baselineNetPaise   BigInt?
+  deltaPaise         BigInt? // expectedNetPaise - baselineNetPaise
+  trustSnapshot      Json? // Immutable public-safe score, metrics, asOf/version
+  inputSnapshot      Json // Quantity/grade, quotes/costs/source dates and assumptions
+  explanationVersion String
+  createdAt          DateTime           @default(now())
+  validUntil         DateTime
+
+  @@index([farmerPartyId, createdAt])
+  @@index([listingId, validUntil])
+}
+
+model TrustScore {
+  id                       String    @id @default(uuid())
+  partyId                  String
+  party                    Party     @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  role                     TrustRole
+  score                    Int // 0..100, constrained in reviewed SQL/API validation
+  tier                     TrustTier
+  kycVerified              Boolean   @default(false)
+  totalTransactions        Int       @default(0) // Completed, not listings/offers
+  eligibleOrders           Int       @default(0)
+  onTimePayments           Int       @default(0)
+  eligiblePayments         Int       @default(0)
+  onTimePaymentPct         Float? // Null without evidence; BUYER only
+  onTimeFulfillmentPct     Float? // FARMER only; policy pending approval
+  disputesCount            Int       @default(0) // Filed cases; not guilt
+  confirmedAtFaultDisputes Int       @default(0)
+  cancelledOrdersCount     Int       @default(0) // Attributable cancellations
+  counterpartRating        Float? // 1..5; null with no verified ratings
+  ratingCount              Int       @default(0)
+  provisional              Boolean   @default(true)
+  suspended                Boolean   @default(false)
+  formulaVersion           String
+  evidenceSnapshot         Json // Public metrics separated from restricted evidence refs
+  asOf                     DateTime
+  updatedAt                DateTime  @updatedAt
+
+  @@unique([partyId, role])
+  @@index([role, tier, suspended])
+}
+
+// Durable in-app events. No external SMS/push delivery is implied.
+model Notification {
+  id        String    @id @default(uuid())
+  partyId   String
+  party     Party     @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  eventKey  String
+  kind      String
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([partyId, eventKey])
+  @@index([partyId, readAt, createdAt])
+}
+
+model BookingEvent {
+  id        String   @id @default(uuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  actorId   String
+  kind      String
+  snapshot  Json
+  createdAt DateTime @default(now())
+
+  @@index([bookingId, createdAt])
 }
 
 enum PartyRole {
@@ -53,10 +158,10 @@ enum PartyRole {
 }
 
 model Fpo {
-  id              String   @id @default(uuid())
+  id              String  @id @default(uuid())
   name            String
   district        String
-  registrationRef String?  // NABARD/SFAC registry ref (Tier 3)
+  registrationRef String? // NABARD/SFAC registry ref (Tier 3)
   members         Party[]
 }
 
@@ -80,12 +185,15 @@ model Listing {
   availableFrom DateTime?
   availableTo   DateTime?
   price         Float?
-  priceUnit     String?       // per_kg | per_quintal | per_day | per_trip | flat
+  priceUnit     String? // per_kg | per_quintal | per_day | per_trip | flat
   status        ListingStatus @default(OPEN)
-  attributes    Json          // validated per resourceType at API layer, see TechSpec.md
+  attributes    Json // validated per resourceType at API layer, see TechSpec.md
   createdAt     DateTime      @default(now())
 
-  offers        Offer[]
+  offers          Offer[]
+  recommendations Recommendation[]
+
+  @@index([partyId, status, createdAt])
 }
 
 enum ListingStatus {
@@ -109,7 +217,9 @@ model Requirement {
   attributes     Json
   createdAt      DateTime     @default(now())
 
-  offers         Offer[]
+  offers Offer[]
+
+  @@index([partyId, createdAt])
 }
 
 model Offer {
@@ -122,6 +232,9 @@ model Offer {
   status        OfferStatus  @default(PENDING)
   createdAt     DateTime     @default(now())
   booking       Booking?
+
+  @@index([listingId, status])
+  @@index([requirementId, status])
 }
 
 enum OfferStatus {
@@ -132,17 +245,24 @@ enum OfferStatus {
 }
 
 model Booking {
-  id                String            @id @default(uuid())
-  offerId           String            @unique
-  offer             Offer             @relation(fields: [offerId], references: [id])
-  totalAmount       Float?
-  agreementUrl      String?
-  fulfillmentStatus FulfillmentStatus @default(PENDING)
-  paymentStatus     PaymentStatus     @default(PENDING)
-  logisticsNote     String?
-  createdAt         DateTime          @default(now())
-  dispute           Dispute?
-  ratings           Rating[]
+  id                 String            @id @default(uuid())
+  offerId            String            @unique
+  offer              Offer             @relation(fields: [offerId], references: [id])
+  totalAmount        Float?
+  agreementUrl       String?
+  fulfillmentStatus  FulfillmentStatus @default(PENDING)
+  paymentStatus      PaymentStatus     @default(PENDING)
+  logisticsNote      String?
+  createdAt          DateTime          @default(now())
+  dispute            Dispute?
+  ratings            Rating[]
+  agreementSnapshot  Json?
+  deliveryDueAt      DateTime?
+  paymentDueAt       DateTime?
+  cancelledAt        DateTime?
+  cancelledById      String?
+  cancellationReason String?
+  events             BookingEvent[]
 }
 
 enum FulfillmentStatus {
@@ -165,7 +285,7 @@ model Rating {
   booking         Booking  @relation(fields: [bookingId], references: [id])
   giverPartyId    String
   receiverPartyId String
-  score           Int      // 1-5
+  score           Int // 1-5
   comment         String?
   createdAt       DateTime @default(now())
 }
@@ -187,7 +307,7 @@ model Dispute {
   resolvedAt        DateTime?
   createdAt         DateTime        @default(now())
 
-  auditLogs         DisputeAuditLog[]
+  auditLogs DisputeAuditLog[]
 }
 
 enum DisputeCategory {
@@ -247,7 +367,9 @@ model Verification {
   slaDeadline     DateTime?
   createdAt       DateTime           @default(now())
 
-  auditLogs       VerificationAuditLog[]
+  auditLogs VerificationAuditLog[]
+
+  @@index([partyId, status])
 }
 
 enum VerificationStatus {
@@ -276,7 +398,7 @@ model MandiPrice {
   market     String
   pricePerKg Float
   arrivalsKg Float?
-  source     String   // AGMARKNET | ENAM
+  source     String // AGMARKNET | ENAM
   recordedAt DateTime
   ingestedAt DateTime @default(now())
 
@@ -285,9 +407,9 @@ model MandiPrice {
 
 model PortalSyncLog {
   id       String   @id @default(uuid())
-  portal   String   // AGMARKNET | ENAM | WDRA | IMD | NABARD_SFAC | PAYMENT_GW
-  tier     Int      // 1 = live, 2 = simulated-live, 3 = stubbed
-  status   String   // SUCCESS | FAILED | STUBBED
+  portal   String // AGMARKNET | ENAM | WDRA | IMD | NABARD_SFAC | PAYMENT_GW
+  tier     Int // 1 = live, 2 = simulated-live, 3 = stubbed
+  status   String // SUCCESS | FAILED | STUBBED
   message  String?
   syncedAt DateTime @default(now())
 }
@@ -300,14 +422,14 @@ model WarehouseReceipt {
   crop         String
   quantityKg   Float
   issuedAt     DateTime
-  status       String   // ACTIVE | REDEEMED
+  status       String // ACTIVE | REDEEMED
 }
 
 model DistrictDailyStats {
   id                          String   @id @default(uuid())
   district                    String
   date                        DateTime
-  avgPricePerCrop             Json     // { "onion": 1850, "tomato": 900 }
+  avgPricePerCrop             Json // { "onion": 1850, "tomato": 900 }
   totalLotsCreated            Int
   totalLotsMatched            Int
   totalLotsPooled             Int
@@ -323,7 +445,7 @@ model DistrictDailyStats {
 model StateDailyStats {
   id                        String   @id @default(uuid())
   date                      DateTime
-  avgPricePerCropByDistrict Json     // { district: { crop: avgPrice } }
+  avgPricePerCropByDistrict Json // { district: { crop: avgPrice } }
   aggregationRateByDistrict Json
   integrationHealthSummary  Json
   escalatedItemsCount       Int
@@ -347,7 +469,7 @@ model MarketplaceAd {
   description String
   imageUrl    String?
   targetUrl   String?
-  placement   String   // RESOURCE_DETAIL | BUYER_DASHBOARD | PROVIDER_DASHBOARD
+  placement   String // RESOURCE_DETAIL | BUYER_DASHBOARD | PROVIDER_DASHBOARD
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
@@ -359,8 +481,8 @@ model FarmActivityLog {
   partyId      String
   party        Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
   crop         String
-  activityType String   // SOWING | IRRIGATION | FERTILIZATION | PESTICIDE_SPRAY | HARVESTING | OTHER
-  costAmount   Float    // ₹ cost incurred
+  activityType String // SOWING | IRRIGATION | FERTILIZATION | PESTICIDE_SPRAY | HARVESTING | OTHER
+  costAmount   Float // ₹ cost incurred
   notes        String?
   date         DateTime @default(now())
   createdAt    DateTime @default(now())
@@ -374,14 +496,12 @@ model CropIssueReport {
   party           Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
   crop            String
   imageUrl        String?
-  issueType       String   // PEST_ATTACK | LEAF_BLIGHT | NUTRIENT_DEFICIENCY | WILTING | OTHER
-  aiDiagnosis     String   // Rule-based or AI Diagnostic result
-  advisoryNote    String   // Recommended treatment / action
+  issueType       String // PEST_ATTACK | LEAF_BLIGHT | NUTRIENT_DEFICIENCY | WILTING | OTHER
+  aiDiagnosis     String // Rule-based or AI Diagnostic result
+  advisoryNote    String // Recommended treatment / action
   expertEscalated Boolean  @default(false) // Fallback routing to KVK expert
   status          String   @default("DIAGNOSED") // DIAGNOSED | ESCALATED_TO_KVK | RESOLVED
   createdAt       DateTime @default(now())
 
   @@index([partyId, status])
 }
-
-

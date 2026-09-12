@@ -1,135 +1,169 @@
-# PRD.md — KrishiSetu: State-Deployable Market Linkage and Farm-Services Ecosystem (SIH 2026)
+# KrishiSetu — Farmer Net-Realization & Assured Market Decision Platform
 
-## 1. Problem Statement (Govt of Maharashtra, SIH 2026, PS 26132)
-Smallholder farmers and FPOs lack real-time visibility into mandi prices, buyer demand,
-quality requirements, logistics, and buyer reliability. This forces distress selling at
-harvest and weak bargaining power, while buyers struggle to source consistent, verified
-volumes. The platform must enable transparent price discovery and reliable farm-gate-to-
-buyer transactions.
+Product requirements • PS 26132 • Strategic pivot, 12 September 2026
 
-## 2. Product Vision
-A role-based, state-deployable market intelligence and services platform. One generic
-marketplace engine (listing → match → offer → booking → payment → rating → dispute)
-powers every transaction type — crop sales, cold storage rental, transport booking,
-equipment/operator hiring, labor hiring, input group-buying, contract farming, and
-used-equipment trading — while the **farmer-facing surface stays radically simple**
-(big buttons, no sidebar, no emoji, mobile-first). Complexity lives in the backend
-engine and in professional-user (buyer/provider/admin) dashboards, not on the
-farmer's screen.
+## 1. Vision and driving problem
 
-Guiding principles:
-- **One engine, many resource types** — new features are new `resourceType` entries
-  plugged into the same engine, not new subsystems.
-- **Feature-rich system, simple farmer surface** — nothing added to scope is ever
-  removed; complexity is organized, not hidden or cut.
-- **Designed for state-scale deployment**, not just a demo — dedicated provider
-  roles, verification/compliance, district/state governance layers, and an
-  aggregation pipeline are first-class, not afterthoughts.
+> Where, when, and how should I sell my crop to maximize what actually reaches my pocket?
 
-## 3. Roles
-| Role | Core need |
-|---|---|
-| Farmer (individual) | Sell crop well, access storage/transport/equipment/labor, get paid reliably |
-| FPO Admin | Aggregate members' produce/purchasing, negotiate as a group |
-| Buyer (processor/trader/institutional) | Source verified, consistent volumes at known quality |
-| Storage Operator (govt/private) | List and manage cold storage capacity |
-| Transport Operator | List and manage vehicle availability/routes |
-| Equipment Provider | List machine + operator "packages" (sowing, harvesting, spraying) |
-| Labor Contractor | List crews for hire |
-| Input Supplier | Group-buying listings for seed/fertilizer/pesticide (verified/licensed only) |
-| District Admin | Verify local providers, resolve district-level disputes, monitor local data feeds |
-| State Admin | Statewide analytics, escalation handling, policy-level oversight |
-| Platform Admin | System-wide config, integration health, trust & safety enforcement |
+A higher quoted price is not necessarily a better sale. Transport, storage, quantity thresholds, quality deductions, payment delays and counterparty failure can consume the difference. Small farmers also need a feasible way to execute the option they choose.
 
-## 4. Feature Set
+KrishiSetu turns those constraints into an explainable comparison of expected take-home proceeds, then connects that decision to offers, aggregation, logistics, agreements and payment tracking. The transaction ecosystem is execution infrastructure, not the product's differentiator.
 
-### 4.1 Farmer-facing (kept minimal — 4 top-level actions, see Design.md)
-1. **Sell my crop** — lot creation, net-realization ranking, sale-window nudge
-2. **Check prices near me** — trend chart, ranked nearby markets/buyers, anomaly/weather flags
-3. **Get help / Services** — resource-type grid: Storage · Transport · Equipment ·
-   Labor · Buy/Sell used gear · Group buying & contracts
-4. **My offers & payments** — offers, payment tracker, ratings, dispute entry point
+“Assured” means an evidence-backed, traceable decision and accountable execution workflow. It does not mean a guaranteed buyer, price, return, payment or insured loss. Current payments are simulations.
 
-Also: voice/WhatsApp/SMS channel parity for all 4 actions; offline-first caching.
+## 2. Why not e-NAM?
 
-### 4.2 FPO Admin
-- Consolidated multi-crop, multi-member dashboard
-- Pool member lots to meet buyer minimums; pool input purchases for bulk pricing
-- Manage member roster and verification
+> e-NAM tells the farmer where market prices exist. KrishiSetu determines the farmer's expected net realization after transport, storage, quantity, quality, buyer reliability and timing, and then helps execute that decision through the same transaction ecosystem.
 
-### 4.3 Buyer
-- Post demand/RFQ; browse matched lots ranked by fit + credibility
-- Digital offers, negotiation, auto-generated agreement, logistics + payment tracking
-- Contract farming: pre-season commitment at agreed price/quality
-- KYC/verification badge application
+This is our positioning shorthand, not a claim that e-NAM only lists prices. e-NAM also supports electronic trading, payment and logistics workflows. Our proposed differentiation is a farmer-specific, explainable decision layer over market and execution options, not exclusive ownership of those transaction capabilities. See [e-NAM overview](https://enam.gov.in/) and [registration and logistics guidance](https://www.enam.gov.in/web/resources/registration-guideline).
 
-### 4.4 Provider roles (Storage / Transport / Equipment / Labor / Input Supplier)
-- List capacity/availability/service package with role-specific attributes
-- Receive and respond to requirement matches; manage bookings and payment status
-- Role-specific verification (see 4.7)
+The team's SasyaSetu/AgriLink comparison motivates this pivot; their feature coverage has not been independently audited here. Do not claim competitive exclusivity without a dated comparison.
 
-### 4.5 Intelligence layer (backend services)
-- Mandi price ingestion & trend computation (Agmarknet, eNAM)
-- Arrival-volume tracking, price anomaly detection, weather-linked price impact
-- Sale-window recommendation (seasonality heuristic)
-- Matching engine: per-resource-type scoring strategy (see TechSpec.md)
-- Quality grading assist (rule-based v1)
-- Credibility scoring for all transacting parties (farmers, buyers, all provider roles)
-- Statewide/district aggregation jobs feeding admin dashboards and the price heatmap
+## 3. Value proposition and users
 
-### 4.6 Trust & transaction layer
-- Digital offer → acceptance → auto-generated agreement (PDF)
-- Escrow-style payment status simulation (pending/held/released)
-- Two-way ratings for every transaction type
-- Category-tagged dispute workflow with district → state escalation (see TechSpec.md)
-- Repeat-offender flagging and suspension (trust & safety)
+For farmers: compare money likely to reach their pocket, understand uncertainty, choose freely and track the outcome.
+For buyers: discover feasible lots and make executable, transparent offers; reliability becomes visible.
+For FPOs: demonstrate each member's net benefit from pooling after shared costs.
+For storage/transport providers: expose priced, available capacity when it improves a sale decision.
+For district/state teams: resolve execution failures first; later use privacy-preserving outcome aggregates to identify bottlenecks.
 
-### 4.7 Verification & governance (state-scale requirement)
-- Role-specific compliance documents: WDRA license (storage), vehicle RC/permit
-  (transport), machine registration (equipment), labor registration (labor),
-  GST + pesticide dealer license (input supplier)
-- District-admin-led verification queue with SLA and auto-escalation to state admin
-- Immutable audit logs for verification decisions and dispute resolutions
-- District/state governance dashboards (queues, local data health, aggregation
-  stats, statewide price heatmap, escalations)
+All eleven existing role types remain supported as execution infrastructure. Having many portals is not a success metric.
 
-### 4.8 Multi-portal integration (tiered)
-- **Tier 1 (live)**: Agmarknet, eNAM
-- **Tier 2 (real data, simulated live)**: WDRA, IMD weather
-- **Tier 3 (stubbed, architecture-ready)**: NABARD/SFAC FPO registry, UPI/payment
-  gateway, external logistics API (largely superseded by the in-platform transport
-  marketplace, but kept as an alternate integration path)
+## 4. Net-realization engine
 
-### 4.9 Platform/accessibility
-- Hindi + Marathi localization on all farmer-facing screens and alert templates
-- Offline-first caching; SMS fallback for critical alerts
-- Mobile-first UI: no sidebar, large buttons with icons/logos, no emoji, minimal text
+For a fixed lot and horizon:
 
-### 4.10 Sustainability / monetization
-- Verified-seller-only marketplace ads (agri-input suppliers), placed outside the
-  core farmer action screens, gated by license verification
+Expected net = grade-adjusted gross proceeds − transport − storage − handling/commission − incremental spoilage loss − financing/timing cost − calibrated counterparty loss.
 
-## 5. Non-Goals (explicit, honest scope boundary)
-- Not an irrigation/water-management solution (water scarcity, droughts)
-- Not a crop-loss weather-resilience solution beyond price-impact flagging
-- Not a soil-health/agronomy advisory tool (soil testing *booking* is in scope;
-  agronomic advice is not)
-- No real payment settlement (simulated status) or live micro-credit/insurance
-  integration in v1 — documented as roadmap only
+Use kg internally and INR with explicit total-versus-unit labels. Avoid double-counting quality deductions and spoilage. Compare the same saleable quantity, grade assumptions and cost responsibilities. Historical production costs may be reported separately; net sale proceeds are not farm profit.
 
-## 6. Success Metrics
-- Farmer net-price-realization uplift; reduction in distress-sale rate
-- % lots matched within X hours; FPO/input aggregation rate
-- Storage/transport/equipment booking volume and utilization
-- Dispute resolution turnaround vs. SLA; repeat-offender rate
-- Verification queue turnaround (district vs. escalated-to-state)
-- Integration health (Tier 1/2/3 uptime, cache staleness)
+The baseline is the farmer's feasible sell-now option, named and timestamped; never choose an artificially poor comparator. Store every cost, quote source, observation time, quantity assumption and model version. Unquoted costs are unknown, not zero. Uncalibrated trust scores are not default probabilities: 87/100 must never imply a 13% monetary loss deduction.
 
-## 7. Key Risks
-- Public API rate limits/staleness -> caching + PortalSyncLog + graceful fallback
-- Farmer trust/adoption -> WhatsApp/SMS/voice channel parity
-- Provider fraud/no-shows across 5 new provider roles -> verification gate +
-  credibility scoring + repeat-offender suspension
-- District admin overload at scale -> SLA-based auto-escalation to state admin
-- Schema flexibility (JSONB attributes) vs. type safety -> enforced via per-
-  resourceType validation schemas at the API layer (see TechSpec.md)
+Only feasible candidates enter ranking: quantity/grade fit, valid quote, availability, required verification and non-suspended counterparties. Missing critical inputs produce “More information needed,” not a fabricated best option. Farmer-entered scenarios remain explicitly labelled estimates. Waiting scenarios require a horizon, upside/downside, assumptions and a named risk factor; missing weather data means weather risk unknown.
+
+## 5. Core product primitives
+
+### 5.1 Explainable Recommendation Card
+
+A persisted Recommendation is the engine's primary communication surface, not a decorative summary. Every farmer sell-decision surface must use it: lot review, market-option comparison, buyer offer comparison, wait/storage choice and FPO pool decision. Raw observations may appear without a recommendation, but cannot be labelled “best sale.”
+
+Fixed field order:
+
+1. WHAT — action, buyer/market, lot quantity, timing and execution route.
+2. WHY — expected net, named baseline net, quantified INR delta and cost breakdown; embed the buyer's visible KrishiTrust snapshot.
+3. RISK — Low / Medium / High, with human-readable bases, evidence age and missing inputs.
+4. WHAT IF I WAIT — horizon, expected change and upside/downside relative to selling now, plus named risk factor. Unknown projections explicitly say unavailable.
+
+Backend fields are structured `what`, `why`, `risk`, `what_if_wait`, with farmer/listing/buyer references, evidence snapshot, validity time and explanation version. See [Schema.md](Schema.md) and the active [Prisma schema](backend/prisma/schema.prisma). Monetary API values use integer paise; baseline and delta remain unknown when no comparable baseline is entered.
+
+Required synthetic acceptance fixture:
+
+```text
+WHAT: Sell to XYZ buyer
+WHY: Net realization ₹2,850 higher
+RISK: Medium
+WHAT IF I WAIT: Expected +₹1,100, but rainfall risk increases
+```
+
+The fixture compares ₹25,850 with ₹23,000 for the same lot; a hypothetical three-day wait has downside −₹900 and upside +₹1,600. These are illustrative scenarios, not live quotes or forecasts. Medium risk can coexist with high buyer trust because timing/logistics uncertainty is distinct.
+
+Feature Justification: answers all three parts of the driving question with a decision the farmer can inspect and challenge.
+
+### 5.2 Visible KrishiTrust Score
+
+TrustScore belongs to a party in a role (BUYER initially; FARMER proposed separately). It includes score 0–100, HIGH TRUST / MEDIUM TRUST / LOW TRUST tier, verified KYC, total completed transactions, on-time payment percentage, disputes count, cancelled orders, counterpart rating out of five, denominators, evidence time, formula version and suspension state.
+
+Display a badge and expandable component metrics on buyer profiles, sourcing/offer details and within the Recommendation Card's WHY section. Buyer trust uses farmer ratings. A farmer profile would use buyer ratings and on-time fulfillment, not on-time payment by the farmer; do not conflate those measures.
+
+Proposed v1 buyer formula (subject to product approval):
+
+- KYC: 20 points when approved and unexpired.
+- On-time payment: 40 × on-time fraction, using settled payments with a recorded due time.
+- Completed history: 10 × min(completed transactions / 40, 1).
+- Cancellation reliability: 10 × (1 − attributable cancellations / eligible accepted orders).
+- Counterpart rating: 20 × average verified-transaction rating / 5.
+- Round the weighted sum, then subtract 10 per confirmed, resolved, at-fault dispute; clamp to 0–100.
+
+A filed complaint is visible but does not itself trigger a penalty. Proposed tiers: HIGH ≥80, MEDIUM 50–79, LOW <50. Missing critical evidence or fewer than ten completed transactions yields a provisional score capped at 59 and a visible “Limited history” label; missing values must not be presented as observed percentages.
+
+Preserve the existing three-confirmed-dispute suspension concept pending policy review: at three at-fault cases, block new trading actions, cap visible score at 49 and show Suspended / LOW TRUST. Appeals reverse only the corresponding audited penalty; never erase dispute history. Existing transaction obligations and grievance access remain available. Final lookback window and reinstatement policy require approval.
+
+Required synthetic fixture:
+
+```text
+Buyer Trust Score: 87/100 — HIGH TRUST
+Verified KYC: ✓
+Transactions: 47
+On-time payments: 96%
+Disputes: 1
+Cancelled orders: 2
+Farmer rating: 4.7/5
+```
+
+Fixture denominators: 48/50 payment milestones on time (orders can have installments), 47 completed + 2 cancelled = 49 eligible orders, 20 ratings, and one confirmed at-fault dispute. Formula: round(20 + 38.4 + 10 + 10×47/49 + 18.8) − 10 = 87.
+
+Feature Justification: makes “how should I sell?” include the likelihood of accountable fulfillment, not just a headline bid.
+
+## 6. Feature scope and justification
+
+| Major feature | Decision-first requirement | Feature Justification |
+| --- | --- | --- |
+| Lot capture and quality | Quantity, grade evidence, location, harvest date and cash deadline | Establishes which sale options are feasible. |
+| Market observations | Provenance, observation age, units and coverage; input to net comparison | Helps answer where without confusing gross price with take-home proceeds. |
+| Net comparison and recommendations | Costed feasible options, baseline, delta, explanation and uncertainty | Directly answers the driving question. |
+| Timing and storage scenarios | Cost of waiting, spoilage, cash deadline and sourced weather uncertainty | Answers when; waiting must beat incremental costs and risks. |
+| Buyer demand, offers and negotiation | Concrete terms, trust snapshot and recomputation when terms change | Converts “where/how” into an executable choice. |
+| Agreements, logistics and payment tracking | Trace chosen recommendation to booking and actual receipts/costs | Tests whether projected income reached the farmer. |
+| Ratings, KYC and dispute governance | Visible trust, role verification, audited penalties and appeals | Protects reliability of the chosen route. |
+| FPO harvest pooling | Compare member-level net outcomes after fees and cost allocation | Makes otherwise infeasible buyer quantities accessible. |
+| Transport and storage capacity | Quote, availability, validity and booking linked to decision | Reduces execution costs and avoidable losses. |
+| Accessibility and offline evidence | Four simple farmer entry points, large controls, EN/HI/MR; dated saved observations | Makes informed decisions usable without hiding stale information. |
+| Notifications and assisted channels | Consent-based offer, expiry, payment and risk updates; future SMS/voice/WhatsApp integrations | Keeps a chosen decision valid as conditions change. |
+| District governance and state intelligence | Operational dispute queues now; anonymized net-outcome/capacity aggregates later | Fixes barriers to take-home income rather than maximizing listings. |
+| Inputs, labor, equipment, used gear, contract farming | Existing resources retained; expansion deferred pending a demonstrated sale-decision benefit | Indirect or unproven fit; not equal-priority v1 differentiators. |
+| Marketplace advertising | Excluded from current feature and monetization scope | Does not answer the driving question and can distort rankings. |
+| FasalRakshak/agronomy and scheme discovery | Outside this release; retain legacy code pending review | No established direct contribution to the sell decision. |
+
+Four implemented primary farmer entry points: Sell my crop; Market prices and take-home comparison; Services; My offers & payments. Services retains storage, transport and other existing providers, with contextual access to FPO membership. Saved decisions and account verification are secondary links. This preserves access while reducing the first-screen choices.
+
+## 7. Phase focus and milestones
+
+Phase focus: farmer income → transparency → trust → FPO aggregation → infrastructure utilization → state intelligence
+
+1. Farmer income: costed sell-now comparisons and outcome capture; no unsupported uplift claim.
+2. Transparency: four-field card on every sell-decision surface, baseline/cost provenance, expiry and unknown states.
+3. Trust: visible buyer score, audited formula, dispute penalty and appeal rules. Safety gates remain mandatory from phase 1.
+4. FPO aggregation: member consent, cost allocation and individual net-benefit comparisons.
+5. Infrastructure utilization: reliable storage/transport quote and availability integration, utilization measured against capacity.
+6. State intelligence: privacy-safe outcome, payment-delay and infrastructure-gap aggregates.
+
+Advertising is not a revenue assumption or deliverable for these phases. The former ImplementationPlan Tier C ads item and build step 16 are explicitly deferred, not silently completed or deleted. No quantified advertising-funded milestone or revenue forecast was found in the reviewed docs. Monetization and funding require a separate decision; do not introduce paid ranking as a substitute.
+
+## 8. Success metrics and acceptance
+
+North star: median realized net proceeds per kg improvement against a recorded comparable feasible baseline, with sample size, crop/grade, district, period and comparison limitations. This is not automatically causal income uplift.
+
+Supporting metrics:
+
+- Realized net = confirmed receipts less evidenced farmer-borne sale costs; report missing-cost coverage.
+- Forecast error: absolute expected-versus-realized net difference, median and upper percentile.
+- Decision completion: completed settlements / chosen recommendations, with abandonment reasons.
+- Transparency: 100% of presented sell recommendations have four fields, baseline, validity and risk basis.
+- Trust: score evidence completeness, on-time payment rate, attributable cancellations, upheld disputes and appeal reversals.
+- Farmer comprehension: can sampled users explain the reason and waiting risk? Pilot target to be agreed.
+- Pooling: per-member net benefit after allocated costs; not merely pooled tonnage.
+- Infrastructure: booked capacity / available capacity and net savings attributable to its use.
+- Safety: zero suspended counterparties eligible for new recommendations; zero demo forecasts labelled live.
+
+No numeric income-uplift promise before a measured pilot. Analytics must separate simulation, estimated outcomes and verified receipts.
+
+## 9. Release boundaries, dependencies and risks
+
+Current evaluation build: authenticated multi-role transactions, password registration, simulated payments, costed market comparisons, price provenance, FPO pooling, dispute penalties, persisted budget/recorded-offer-based recommendations, visible provisional buyer trust, immutable acceptance snapshots, booking history and durable in-app notifications. Verification supports private document uploads and owner/jurisdiction-scoped downloads; manual review is not government validation. Core farmer assistance includes EN/HI/MR and browser voice with typing fallback. Timing forecasts, verified realized-income attribution, member-level pooled settlement and production integrations remain unshipped. `/preview/decision` remains a synthetic fixture, separate from authenticated saved decisions. Recommendations are indicative estimates, not guaranteed buyer quotes.
+
+Agmarknet refresh is implemented but successful live ingestion was not verified during the last checks; see [MARKET_DATA.md](MARKET_DATA.md). e-NAM, IMD, WDRA and registry access are not assumed production integrations. Missing feeds must not be replaced with plausible-looking samples.
+
+No real settlement, insurance guarantee, production SMS, offline transaction queue or full-language parity is claimed. Risks include uncertain costs, stale quotes, selection bias, sparse trust history, false accusations, weather uncertainty and privacy leakage. Mitigate with provenance, abstention, evidence requirements, appeals, freshness checks and explicit consent.
+
+See [ImplementationPlan.md](ImplementationPlan.md) for acceptance gates and [PIVOT_REVIEW.md](PIVOT_REVIEW.md) for changes and decisions requiring approval.

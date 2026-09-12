@@ -1,391 +1,47 @@
-# Schema.md — Market Linkage & Farm Services Platform (PostgreSQL via Prisma)
+# KrishiSetu — Farmer Net-Realization & Assured Market Decision Platform
+## 1. Source of truth and status
 
-## 1. Design Approach
-One generic marketplace engine (`Listing`, `Requirement`, `Offer`, `Booking`,
-`Payment`, `Rating`, `Dispute`) serves every transaction type via a `resourceType`
-enum + a `JSONB attributes` field, validated at the API layer against a
-per-resourceType schema (see TechSpec.md). Role-specific identity/compliance data
-(`Verification`) is kept separate from listings, since compliance is a property of
-the *party*, not the transaction. Admin dashboards read from a separate,
-periodically-refreshed aggregation layer, never from live transactional tables.
+The active schema is [backend/prisma/schema.prisma](backend/prisma/schema.prisma). Alongside identity, Listing → Offer → Booking, reviews and market evidence, it now includes Recommendation, TrustScore, Notification and BookingEvent. Booking stores an immutable accepted agreement snapshot and nullable cancellation/due-time metadata.
 
-## 2. Core Identity
+The additive upgrade preserves existing rows and retains MarketplaceAd, FarmActivityLog and CropIssueReport. Operational history is distinct from verified payment/outcome evidence, which remains incomplete.
 
-```prisma
-model User {
-  id            String   @id @default(uuid())
-  phone         String   @unique
-  passwordHash  String?
-  preferredLang String   @default("en") // en | hi | mr
-  createdAt     DateTime @default(now())
-  party         Party?
-}
+## 2. Implemented entities and historical proposal
 
-model Party {
-  id         String       @id @default(uuid())
-  userId     String       @unique
-  user       User         @relation(fields: [userId], references: [id])
-  name       String
-  district   String
-  village    String?
-  roles      PartyRole[]
-  fpoId      String?
-  fpo        Fpo?         @relation(fields: [fpoId], references: [id])
+The active schema follows PostgreSQL, String UUID identifiers, enums, JSON payloads, relation and index conventions. The [original proposal](backend/prisma/proposals/decision-platform.prisma) is historical; deploy the active schema and [additive SQL](backend/prisma/migrations/20260912000000_decision_records/migration.sql). Client generation and the additive upgrade have been applied to the configured evaluation database. Party and Listing backrelations are defined in the active schema, not a separately merged fragment.
 
-  listings      Listing[]
-  requirements  Requirement[]
-  verifications Verification[]
-  credibility   CredibilityScore?
-}
+Recommendation belongs to the farmer and crop listing, optionally a buyer. It stores WHAT, quantified WHY, risk level/bases and WHAT IF I WAIT, immutable input/trust snapshots, explanation version and validity. API risk combines persisted risk + riskBasis into { level, basis }. JSON why contains the readable breakdown, while indexed/auditable top-level monetary fields must agree with it. Validate those duplicates in one write transaction.
 
-enum PartyRole {
-  FARMER
-  FPO_ADMIN
-  BUYER
-  STORAGE_OPERATOR
-  TRANSPORT_OPERATOR
-  EQUIPMENT_PROVIDER
-  LABOR_CONTRACTOR
-  INPUT_SUPPLIER
-  DISTRICT_ADMIN
-  STATE_ADMIN
-  PLATFORM_ADMIN
-}
+TrustScore is unique per party+role, supporting parties with both buyer/farmer roles. Buyer payment reliability and farmer fulfillment reliability are different metrics. Farmer scoring remains a policy proposal, not a reuse of buyer weights.
 
-model Fpo {
-  id              String   @id @default(uuid())
-  name            String
-  district        String
-  registrationRef String?  // NABARD/SFAC registry ref (Tier 3)
-  members         Party[]
-}
+## 3. Money and validation
 
-model OtpCode {
-  id        String   @id @default(uuid())
-  phone     String   @unique
-  code      String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-}
-```
+New recommendation totals use BigInt integer paise to avoid extending the legacy Float-money convention. Existing Offer/Booking Float columns are unchanged. API adapters convert BigInt to safe integer paise only within Number.MAX_SAFE_INTEGER; reject values beyond that boundary. Never pass BigInt directly to JSON.stringify. A later whole-ledger money migration needs independent review.
 
-## 3. Generic Marketplace Engine
+Contracts and fixtures: [frontend/lib/decision-platform.ts](frontend/lib/decision-platform.ts). The server validates bounded scenario inputs with Zod, computes explanation JSON itself and restricts generation to farmer-owned CROP_LOT records and feasible counterparties. SQL checks enforce score 0–100 and consistent known/unknown baseline arithmetic. Baseline and delta are both nullable when the farmer supplies no comparison. Additional database checks for ratings, percentages, counts, denominators and expiry remain hardening work; do not claim them implemented. JSON fields must not accept arbitrary client-authored explanations.
 
-```prisma
-enum ResourceType {
-  CROP_LOT
-  COLD_STORAGE
-  TRANSPORT
-  EQUIPMENT_SERVICE
-  LABOR
-  USED_EQUIPMENT
-  INPUT_GROUP_BUY
-  CONTRACT_FARMING
-}
+Store quantity, quality/grade adjustments, line-item costs, cash horizon, quote IDs/expiry, observation dates, source coverage and known/missing inputs. Do not store credentials or raw KYC documents in farmer-visible snapshots.
 
-model Listing {
-  id            String       @id @default(uuid())
-  partyId       String
-  party         Party        @relation(fields: [partyId], references: [id])
-  resourceType  ResourceType
-  district      String
-  availableFrom DateTime?
-  availableTo   DateTime?
-  price         Float?
-  priceUnit     String?      // per_kg | per_quintal | per_day | per_trip | flat
-  status        ListingStatus @default(OPEN)
-  attributes    Json         // validated per resourceType at API layer, see TechSpec.md
-  createdAt     DateTime     @default(now())
+## 4. Evidence additions required before backfill
 
-  offers        Offer[]
-}
+BookingEvent records new operational transitions, logistics updates and disputes. New unfunded cancellations record actor, time and reason, but actor alone does not establish fault. Nullable due-time fields are not backfilled. Current data is insufficient to derive verified on-time payment.
 
-enum ListingStatus {
-  OPEN
-  POOLED
-  MATCHED
-  BOOKED
-  COMPLETED
-  EXPIRED
-}
+Propose an append-only BookingOutcomeEvent model in the next implementation review: booking relation, event type (PAYMENT_DUE, PAYMENT_RECEIVED, COST_RECORDED, CANCELLED), occurredAt, dueAt, amountPaise, responsiblePartyId, evidence reference, actor, idempotency key and simulation flag. Correction events reference the event being reversed rather than editing history. Add adjudication outcome/at-fault party and reversible penalty identity to dispute decisions.
 
-model Requirement {
-  id             String       @id @default(uuid())
-  partyId        String
-  party          Party        @relation(fields: [partyId], references: [id])
-  resourceType   ResourceType
-  district       String?
-  quantityNeeded Float?
-  budget         Float?
-  deadline       DateTime?
-  attributes     Json
-  createdAt      DateTime     @default(now())
+These events also support realized-net measurement. Merely marking a simulated booking RELEASED is not evidence of real farmer income. Recommendation-choice/booking linkage needs an immutable selection event so later outcomes can be attributed to the chosen explanation.
 
-  offers         Offer[]
-}
+## 5. Trust migration and retention
 
-model Offer {
-  id             String   @id @default(uuid())
-  listingId      String
-  listing        Listing  @relation(fields: [listingId], references: [id])
-  requirementId  String?
-  requirement    Requirement? @relation(fields: [requirementId], references: [id])
-  price          Float
-  status         OfferStatus @default(PENDING)
-  createdAt      DateTime @default(now())
-  booking        Booking?
-}
+Keep CredibilityScore and its current enforcement until approved shadow calculation and policy cutover. Do not fabricate historical due times, KYC or payment percentages. Backfill only auditable fields; missing evidence gives a provisional score. Record denominators and formula version; the 87 fixture's one dispute is explicitly confirmed at fault.
 
-enum OfferStatus {
-  PENDING
-  COUNTERED
-  ACCEPTED
-  REJECTED
-}
+Apply one penalty per upheld decision, with auditable reversal on appeal. PRD.md specifies proposed score weights/tier/suspension behavior; the existing lifetime three-dispute threshold requires a lookback/reinstatement decision.
 
-model Booking {
-  id             String   @id @default(uuid())
-  offerId        String   @unique
-  offer          Offer    @relation(fields: [offerId], references: [id])
-  totalAmount    Float?   // computed total transaction value (quantity * offer.price), separate from Offer.price per-unit semantics
-  agreementUrl   String?
-  fulfillmentStatus FulfillmentStatus @default(PENDING)
-  paymentStatus  PaymentStatus @default(PENDING)
-  logisticsNote  String?
-  createdAt      DateTime @default(now())
-  dispute        Dispute?
-  ratings        Rating[]
-}
+No cascade deletion of recommendation evidence is proposed. Retention, anonymization and deletion rights need a privacy policy and controlled migration.
 
-enum FulfillmentStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
+## 6. Deferred existing models
 
-enum PaymentStatus {
-  PENDING
-  ESCROWED
-  RELEASED
-  FAILED
-}
+MarketplaceAd is retained as legacy data/code only, excluded from current monetization and decision ranking. Removing its table, routes or migrations requires explicit approval. Existing broad resource types remain intact while their expansion is deprioritized.
 
-model Rating {
-  id          String   @id @default(uuid())
-  bookingId   String
-  booking     Booking  @relation(fields: [bookingId], references: [id])
-  giverPartyId    String
-  receiverPartyId String
-  score       Int      // 1-5
-  comment     String?
-  createdAt   DateTime @default(now())
-}
-```
+## 7. Rollout and verification
 
-## 4. Trust, Safety & Dispute
-
-```prisma
-model Dispute {
-  id               String   @id @default(uuid())
-  bookingId        String   @unique
-  booking          Booking  @relation(fields: [bookingId], references: [id])
-  raisedByPartyId  String
-  respondentPartyId String
-  category         DisputeCategory
-  reason           String
-  evidenceUrls     String[]
-  status           DisputeStatus @default(OPEN)
-  districtAdminId  String?
-  stateAdminId     String?
-  resolutionNote   String?
-  slaDeadline      DateTime?
-  resolvedAt       DateTime?
-  createdAt        DateTime @default(now())
-
-  auditLogs        DisputeAuditLog[]
-}
-
-enum DisputeCategory {
-  PAYMENT
-  QUALITY
-  LOGISTICS
-  STORAGE_DAMAGE
-  SERVICE_NOT_RENDERED
-  OTHER
-}
-
-enum DisputeStatus {
-  OPEN
-  UNDER_DISTRICT_REVIEW
-  ESCALATED
-  UNDER_STATE_REVIEW
-  RESOLVED
-  REJECTED
-}
-
-model DisputeAuditLog {
-  id         String   @id @default(uuid())
-  disputeId  String
-  dispute    Dispute  @relation(fields: [disputeId], references: [id])
-  actorId    String
-  fromStatus String
-  toStatus   String
-  note       String?
-  createdAt  DateTime @default(now())
-}
-
-model CredibilityScore {
-  id           String   @id @default(uuid())
-  partyId      String   @unique
-  party        Party    @relation(fields: [partyId], references: [id])
-  score        Float    @default(50) // 0-100
-  txnCount     Int      @default(0)
-  onTimePayPct Float?
-  disputeCount Int      @default(0)
-  suspended    Boolean  @default(false)
-  updatedAt    DateTime @updatedAt
-}
-```
-
-## 5. Verification & Governance
-
-```prisma
-model Verification {
-  id            String   @id @default(uuid())
-  partyId       String
-  party         Party    @relation(fields: [partyId], references: [id])
-  role          PartyRole
-  documentType  String   // WDRA_LICENSE | TRANSPORT_PERMIT | MACHINE_REG |
-                          // LABOR_REGISTRATION | GST | PESTICIDE_DEALER_LICENSE
-  documentRef   String?
-  documentUrl   String?
-  status        VerificationStatus @default(PENDING)
-  reviewedBy    String?  // adminId
-  reviewedAt    DateTime?
-  rejectionReason String?
-  expiresAt     DateTime?
-  slaDeadline   DateTime?
-  createdAt     DateTime @default(now())
-
-  auditLogs     VerificationAuditLog[]
-}
-
-enum VerificationStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  EXPIRED
-  ESCALATED
-}
-
-model VerificationAuditLog {
-  id             String   @id @default(uuid())
-  verificationId String
-  verification   Verification @relation(fields: [verificationId], references: [id])
-  actorId        String
-  fromStatus     String
-  toStatus       String
-  note           String?
-  createdAt      DateTime @default(now())
-}
-```
-
-## 6. Intelligence & Integration Layer
-
-```prisma
-model MandiPrice {
-  id          String   @id @default(uuid())
-  crop        String
-  district    String
-  market      String
-  pricePerKg  Float
-  arrivalsKg  Float?
-  source      String   // AGMARKNET | ENAM
-  recordedAt  DateTime
-  ingestedAt  DateTime @default(now())
-
-  @@index([crop, district, recordedAt])
-}
-
-model PortalSyncLog {
-  id        String   @id @default(uuid())
-  portal    String   // AGMARKNET | ENAM | WDRA | IMD | NABARD_SFAC | PAYMENT_GW
-  tier      Int      // 1 = live, 2 = simulated-live, 3 = stubbed
-  status    String   // SUCCESS | FAILED | STUBBED
-  message   String?
-  syncedAt  DateTime @default(now())
-}
-
-model WarehouseReceipt {
-  id           String   @id @default(uuid())
-  partyId      String
-  party        Party    @relation(fields: [partyId], references: [id])
-  warehouseRef String   // WDRA / e-NWR reference
-  crop         String
-  quantityKg   Float
-  issuedAt     DateTime
-  status       String   // ACTIVE | REDEEMED
-}
-```
-
-## 7. Aggregation Layer (admin dashboards read ONLY from here)
-
-```prisma
-model DistrictDailyStats {
-  id                          String   @id @default(uuid())
-  district                    String
-  date                        DateTime
-  avgPricePerCrop             Json     // { "onion": 1850, "tomato": 900 }
-  totalLotsCreated            Int
-  totalLotsMatched            Int
-  totalLotsPooled             Int
-  activeStorageUtilizationPct Float?
-  activeTransportBookings     Int
-  pendingVerifications        Int
-  openDisputes                Int
-  resolvedDisputesWithinSla   Int
-
-  @@index([district, date])
-}
-
-model StateDailyStats {
-  id                         String   @id @default(uuid())
-  date                       DateTime
-  avgPricePerCropByDistrict  Json     // { district: { crop: avgPrice } }
-  aggregationRateByDistrict  Json
-  integrationHealthSummary   Json
-  escalatedItemsCount        Int
-
-  @@index([date])
-}
-```
-
-## 8. Notes
-- `Listing.attributes` / `Requirement.attributes` schemas per `resourceType` are
-  defined and enforced in TechSpec.md, not in the database.
-- `CredibilityScore.disputeCount` and `suspended` back the repeat-offender
-  trust & safety mechanism described in TechSpec.md / ImplementationPlan.md.
-- `DistrictDailyStats` / `StateDailyStats` are written by scheduled jobs, never
-  by request-path code — see TechSpec.md §7 for refresh cadence.
-- `OtpCode` provides persistent storage and expiry validation for OTP-based farmer authentication across restarts.
-- `Booking.totalAmount` stores the computed total transaction value (quantityNeeded * offer.price), leaving `Offer.price` strictly as the per-unit negotiated price.
-- `MarketplaceAd` stores verified-seller promotional ad banners (agri-inputs, equipment, storage). It is intentionally designed as a standalone table rather than reusing the generic `Listing`/`Requirement` engine because ads are promotional content served across specific UI surfaces (resource detail pages, buyer/provider dashboards) rather than transactable marketplace resources that participate in matching, offers, bookings, escrow payments, and ratings. Gating is enforced via the seller's `Verification` status (`APPROVED`).
-
-```prisma
-model MarketplaceAd {
-  id          String   @id @default(uuid())
-  partyId     String
-  party       Party    @relation(fields: [partyId], references: [id])
-  title       String
-  description String
-  imageUrl    String?
-  targetUrl   String?
-  placement   String   // RESOURCE_DETAIL | BUYER_DASHBOARD | PROVIDER_DASHBOARD
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  @@index([placement, active])
-}
-```
+For an existing provisioned database, run `npm --prefix backend run db:check`, then `npm --prefix backend run db:upgrade` before starting the upgraded API/worker. The narrowly scoped script executes the checked-in additive SQL using the runtime connection; it performs no seed, deletion or historical-data backfill. The SQL is repeatable and transactionally guarded. It does not mark Prisma migration history, so reconcile your baseline before adopting normal `prisma migrate deploy`; never use reset to resolve that bookkeeping. Take deployment backups through your database provider. New recommendations, trust snapshots, notifications and booking events are exercised by the isolated workspace integration suite, including ownership and cancellation checks.
 

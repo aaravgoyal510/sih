@@ -16,15 +16,17 @@ export class SlaEscalationService {
       include: { party: { select: { id: true, name: true, district: true } } },
     });
 
-    const escalatedVerifications = [];
+    const escalatedVerifications: any[] = [];
     for (const v of overdueVerifications) {
       console.log(`[SLA ESCALATION] Escalating Verification ID ${v.id} (Party: ${v.party.name}, District: ${v.party.district}, SLA Deadline: ${v.slaDeadline?.toISOString()})`);
 
       const updated = await prisma.$transaction(async (tx) => {
-        const vUpdated = await tx.verification.update({
-          where: { id: v.id },
+        const vUpdated = await tx.verification.updateMany({
+          where: { id: v.id, status: 'PENDING', slaDeadline: { lte: now } },
           data: { status: 'ESCALATED' },
         });
+
+        if (!vUpdated.count) return null;
 
         await tx.verificationAuditLog.create({
           data: {
@@ -39,7 +41,7 @@ export class SlaEscalationService {
         return vUpdated;
       });
 
-      escalatedVerifications.push(updated);
+      if (updated) escalatedVerifications.push(updated);
     }
 
     // 2. Dispute SLA Escalations: status in ['OPEN', 'UNDER_DISTRICT_REVIEW'] and slaDeadline <= now
@@ -50,15 +52,17 @@ export class SlaEscalationService {
       },
     });
 
-    const escalatedDisputes = [];
+    const escalatedDisputes: any[] = [];
     for (const d of overdueDisputes) {
       console.log(`[SLA ESCALATION] Escalating Dispute ID ${d.id} (Status: ${d.status}, SLA Deadline: ${d.slaDeadline?.toISOString()})`);
 
       const updated = await prisma.$transaction(async (tx) => {
-        const dUpdated = await tx.dispute.update({
-          where: { id: d.id },
+        const dUpdated = await tx.dispute.updateMany({
+          where: { id: d.id, status: d.status, slaDeadline: { lte: now } },
           data: { status: 'ESCALATED' },
         });
+
+        if (!dUpdated.count) return null;
 
         await tx.disputeAuditLog.create({
           data: {
@@ -73,7 +77,7 @@ export class SlaEscalationService {
         return dUpdated;
       });
 
-      escalatedDisputes.push(updated);
+      if (updated) escalatedDisputes.push(updated);
     }
 
     return {

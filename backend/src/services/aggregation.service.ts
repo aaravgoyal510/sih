@@ -22,7 +22,7 @@ export class AggregationService {
     const districts = await this.getUniqueDistricts();
     console.log(`[AggregationService] Processing ${districts.length} active district(s):`, districts);
 
-    const districtStatsList = [];
+    const districtStatsList: any[] = [];
 
     for (const district of districts) {
       const stats = await this.aggregateDistrictStats(district, dateStart, dateEnd);
@@ -49,13 +49,20 @@ export class AggregationService {
     const mandiPrices = await prisma.mandiPrice.findMany({
       where: {
         district: { equals: district, mode: 'insensitive' },
+        recordedAt: { gte: new Date(dateStart.getTime() - 7 * 86400000), lte: dateEnd },
+        source: 'AGMARKNET_LIVE',
       },
-      select: { crop: true, pricePerKg: true },
+      select: { crop: true, pricePerKg: true, market: true },
+      orderBy: { recordedAt: 'desc' },
     });
 
     const cropPriceMap: Record<string, number[]> = {};
+    const seenMarkets = new Set<string>();
     for (const mp of mandiPrices) {
       const crop = mp.crop;
+      const key = `${crop.toLowerCase()}|${mp.market.toLowerCase()}`;
+      if (seenMarkets.has(key)) continue;
+      seenMarkets.add(key);
       if (!cropPriceMap[crop]) cropPriceMap[crop] = [];
       cropPriceMap[crop].push(mp.pricePerKg);
     }

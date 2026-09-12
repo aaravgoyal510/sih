@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+import {useLanguage} from '../../../lib/LanguageContext';
+import {copy} from '../../../lib/assist-copy';
 import {
   Sprout,
   ShieldAlert,
@@ -22,7 +25,10 @@ import {
   UserCheck
 } from 'lucide-react';
 
-export default function FasalRakshakPage() {
+export default function FasalRakshakPage(){const {language}=useLanguage();return <section className="ks-assisted ks-panel"><h1>{copy(language,'Crop diagnosis is not available')}</h1><p>{copy(language,'The previous screen used demonstration diagnoses, not verified crop analysis. It is disabled to prevent misleading treatment advice.')}</p><Link className="ks-button" href="/farmer/home">{copy(language,'Go home')}</Link></section>;}
+
+// Retained for product review; not exposed as a live diagnostic or farm record.
+function LegacyFasalRakshakPreview() {
   const [activeTab, setActiveTab] = useState<'advisory' | 'diagnosis' | 'diary' | 'planner'>('advisory');
 
   // Activity Diary Form State

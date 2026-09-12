@@ -1,4 +1,5 @@
 import { prisma } from '../config/prisma';
+import { liveMarket } from './live-market.service';
 
 export interface WhatsAppMessageResult {
   fromPhone: string;
@@ -57,13 +58,8 @@ export class WhatsappSmsChannelService {
     else if (text.includes('SOLAPUR')) district = 'Solapur';
 
     // Query MandiPrice table (same backend ingestion table used by Next.js web app)
-    const latestPrice = await prisma.mandiPrice.findFirst({
-      where: {
-        crop: { equals: crop, mode: 'insensitive' },
-        district: { equals: district, mode: 'insensitive' },
-      },
-      orderBy: { recordedAt: 'desc' },
-    });
+    const feed = await liveMarket.get();
+    const latestPrice = feed.prices.find(p=>p.crop.toLowerCase()===crop.toLowerCase()&&p.district.toLowerCase()===district.toLowerCase());
 
     if (!latestPrice) {
       return {
@@ -78,7 +74,7 @@ export class WhatsappSmsChannelService {
 
     const priceQuintal = (latestPrice.pricePerKg * 100).toFixed(0);
 
-    const replyText = `🌾 *KrishiSetu Price Intelligence* 🌾\n\n📌 *Crop*: ${crop}\n📍 *District*: ${district}\n🏬 *Market*: ${latestPrice.market}\n\n💰 *Latest Price*: ₹${latestPrice.pricePerKg.toFixed(2)} / kg (₹${priceQuintal} / Quintal)\n📊 *Arrivals*: ${latestPrice.arrivalsKg ? (latestPrice.arrivalsKg / 1000).toFixed(1) + ' Tons' : 'N/A'}\nℹ️ *Source*: ${latestPrice.source} (Live Ingestion Feed)`;
+    const replyText = `KrishiSetu market prices\nCrop: ${crop}\nDistrict: ${district}\nMarket: ${latestPrice.market}\nPrice: INR ${latestPrice.pricePerKg.toFixed(2)}/kg (INR ${priceQuintal}/quintal)\nObserved: ${latestPrice.recordedAt.slice(0,10)}\nStatus: ${feed.mode}\n${feed.warning||'Mean reported modal price across varieties/grades.'}`;
 
     return {
       fromPhone,
@@ -92,7 +88,7 @@ export class WhatsappSmsChannelService {
 
   private async handleMyOffersIntent(fromPhone: string): Promise<WhatsAppMessageResult> {
     const party = await prisma.party.findFirst({
-      where: { user: { phone: { contains: fromPhone.slice(-10) } } },
+      where: { user: { phone: fromPhone } },
       include: {
         listings: {
           include: {
@@ -144,7 +140,7 @@ export class WhatsappSmsChannelService {
       fromPhone,
       intentRecognized: 'SELL_CROP',
       channel: 'WHATSAPP',
-      replyText: `🌾 *Crop Lot Registration*\nReceived request: "${text}"\n\nBest net realization nearby: *₹19.50/kg* at *Lasalgaon APMC*.\nYour lot has been published to verified buyers! Reply *MY OFFERS* to track incoming offers.`,
+      replyText: `Crop draft request received: "${text}". Nothing has been published. Open KrishiSetu, choose Sell my crop, review quantity and price, then explicitly publish. This channel has no confirmed buyer quote or net-realization estimate.`,
     };
   }
 }

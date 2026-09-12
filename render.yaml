@@ -1,0 +1,28 @@
+# Optional blueprint for a new service. Existing Render services keep their
+# dashboard settings; applying this file is not required to keep them working.
+services:
+  - type: web
+    name: krishisetu-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AGMARKNET_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: DEMO_MODE
+        value: "false"

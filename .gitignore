@@ -10,6 +10,10 @@ node_modules/
 # Build outputs
 dist/
 .next/
+.next-dev/
+test-results/
+playwright-report/
+*.tsbuildinfo
 out/
 build/
 

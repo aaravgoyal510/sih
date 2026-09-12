@@ -1,186 +1,91 @@
-# KrishiSetu: State-Deployable Market Linkage and Farm-Services Ecosystem (SIH 2026)
-> **Smart India Hackathon (SIH) 2026** | **Problem Statement: Govt of Maharashtra**
-> *A State-Deployable Unified AgTech Marketplace, Resource Aggregation Engine, Escrow Settlement & Government Oversight System.*
+# KrishiSetu — Farmer Net-Realization & Assured Market Decision Platform
 
----
+For PS 26132, KrishiSetu asks: “Where, when, and how should I sell my crop to maximize what actually reaches my pocket?” The target product compares expected net proceeds after quantity/quality, transport, storage, timing and buyer reliability, then supports execution through offers, logistics and accountable transactions.
 
-## Executive Overview
+The evaluation build includes guided crop capture, EN/HI/MR farmer assistance, browser voice input/read-aloud with typing fallback, saved costed buyer recommendations and visible evidence-based buyer trust. The backend validates ownership, crop/grade, quantity, costs and suspended counterparties; an optional local baseline never produces an invented improvement delta. Immutable recommendations, current trust snapshots, notifications with account-level read status and booking events now have real database models. Farmers can revisit saved decisions at `/farmer/decisions`. See [PRD.md](PRD.md) and the separately labelled synthetic `/preview/decision` fixture. “Assured” does not mean guaranteed returns or payments. Advertising endpoints are disabled; legacy code/data are retained.
 
-**KrishiSetu** is a comprehensive, state-deployable agricultural linkage platform designed to eliminate intermediary price squeezes for smallholder farmers across Maharashtra. Built to solve critical market access, price realization, and farm service bottlenecks, the platform connects **Farmers**, **FPOs**, **Institutional & Retail Buyers**, **Service Providers** (Storage, Transport, Machinery, Labor, Inputs), **District Magistrates**, and **State Agriculture Officials** into a unified, transparent ecosystem.
+This is a local evaluation build, **not a production payment or government-verification service**. Sample entities are demonstration identities, not endorsed partners. No certification or measured farmer-income improvement is implied.
 
-### Key Value Propositions
-- **Direct Market Linkage**: Replaces 3–5 tiers of mandi middlemen with direct digital transactions, boosting farmer net price realization by 8.4%+.
-- **FPO Aggregation Engine**: Enables Farmer Producer Organizations (FPOs) to pool smallholder harvests into WDRA-certified bulk lots.
-- **5-Tier Farm Services Grid**: On-demand booking for Cold Storage, Transport Logistics, Machinery Rental, Farm Labor Crews, and Bio-Inputs Group Buying.
-- **Escrow Settlement & Verification Engine**: Protected payments held in vault until quality/quantity delivery is verified, backed by SLA-enforced District & State Dispute Resolution.
-- **State Command Dashboard**: Real-time 4-color price realization heatmap (*Green, Amber, Red, Grey NO_DATA*) across all 36 Maharashtra districts.
+## Run locally
 
----
+- Frontend: http://localhost:3000/demo
+- API health: http://localhost:4000/health
+- Repository root: `npm run dev` starts frontend, backend and the scheduled worker.
+- Stop existing servers before starting another copy on these ports.
 
-## Architectural Highlights
+Node.js 20+ and the configured PostgreSQL/Supabase database are required. Docker is optional; this workspace uses the configured database directly.
 
-### 1. Generic Marketplace Engine
-A decoupled, single-schema `Listing` and `Requirement` transaction engine handling all agricultural resource types uniformly via `ResourceType`:
-- `CROP_LOT`: Harvested crops (Onion, Tomato, Soybean, Grape, Pomegranate).
-- `COLD_STORAGE`: WDRA warehouse capacity (temp-controlled bay booking).
-- `TRANSPORT`: Ventilated & refrigerated truck freight per km.
-- `EQUIPMENT_SERVICE`: Harvester & tractor custom hiring per acre.
-- `INPUT_GROUP_BUY`: Seed & bio-fertilizer group purchasing per bag.
-- `LABOR_CREW`: Harvesting & weeding farm labor team hiring per day.
+## Configuration
 
-### 2. Multi-Factor Net Realization Matching Engine
-Calculates a 0–100% Match Fit Score between buyer demand requirements and seller produce lots:
-$$\text{Match Fit} = f(\text{Net Realization}, \text{Quality Grade Fit}, \text{Distance Penalty}, \text{Seller Credibility Score})$$
-Where **Net Realization** subtracts logistics costs and commission fees from the gross price, ensuring farmers receive the highest net payout.
+Backend loads `backend/.env`, then the repository `.env` without overriding existing values. Keep credentials out of git. Your root `.env` is supported; copying secrets is unnecessary.
 
-### 3. Dynamic Seller Credibility & Rating Model
-- **Base Score**: 50/100 points upon initial onboarding.
-- **Increments**: +5 for verified land revenue records (7/12), +2 per successful on-time escrow settlement.
-- **Penalties**: -15 for confirmed dispute breaches or quality mismatch rejections.
-- **Tiering**: Verified Tier-1 Sellers (Score > 85) unlock gated Marketplace Ad placements.
+Required: `DATABASE_URL`, `DIRECT_URL` for the Prisma datasource, and a strong `JWT_SECRET`. Optional: `PORT` (4000), `AGMARKNET_API_KEY`, `AGMARKNET_RESOURCE_ID`. Frontend server: `BACKEND_URL` in `frontend/.env.local` or Vercel environment settings. Local default is http://127.0.0.1:4000; Vercel requires the Render HTTPS origin and a redeploy. Browser requests use the same-origin `/api/backend` proxy, so tunneling port 3000 does not require exposing port 4000. Legacy public URL variables remain fallback inputs. See [DEPLOYMENT.md](DEPLOYMENT.md) for connection troubleshooting.
 
-### 4. Multi-Tier Government Portal Integration Engine
-Built with architecture-ready adapters logging to `PortalSyncLog`:
-- **Tier 1 (Live API Sync)**: `AGMARKNET` daily APMC mandi price feeds.
-- **Tier 2 (Escrow Gateway)**: Protected Payment Gateway & Webhook Vault.
-- **Tier 3 (Architecture Stub)**: `NABARD / SFAC` FPO National Registry.
+For Supabase shared-pooler URLs, runtime normalizes port 5432 to transaction-pooler port 6543 and uses the version-matched Prisma PostgreSQL driver adapter with three connections per process. This reduces the extra query round-trips observed on the configured Sydney-region database. `DIRECT_URL` and your `.env` remain unchanged. `PRISMA_RUST_DRIVER=true` retains the previous runtime driver as a compatibility escape hatch; set `SUPABASE_SESSION_MODE=true` only if session pooling is intentionally required. See [Supabase connections](https://supabase.com/docs/guides/database/connecting-to-postgres) and [Prisma driver adapters](https://www.prisma.io/docs/orm/v6/overview/databases/database-drivers).
 
----
+Demo sign-in is restricted to designated seeded identities and disabled with `NODE_ENV=production`, unless `DEMO_MODE=true`. Never enable it on a deployment containing real users or transactions. `/login` supports new farmer/buyer/provider accounts with a 12–128-character password hashed using salted scrypt. Self-registration cannot grant administrative roles. Mobile numbers are identifiers, not verified phone ownership. SMS/recovery delivery still needs a real provider. Development OTP requires explicit `ENABLE_DEV_OTP=true`, is always disabled in production, and cannot access password-protected accounts. A strong, non-default `JWT_SECRET` is enforced in production.
 
-## 11 Supported User Roles & Demo Profiles
+## Install and verify
 
-Evaluators can switch between all 11 supported party roles in 1 click via the **Demo Role-Switcher Hub (`/demo`)**:
-
-| # | Party Role | Demo Entity Name | District Scope | Key Platform Capabilities |
-|---|---|---|---|---|
-| 1 | **Farmer** | Bhausaheb Patil | Nashik (Lasalgaon) | Crop lot listing, mandi price lookup, farm service booking, offer acceptance. |
-| 2 | **FPO Aggregator Admin** | Sahyadri Farmers Producer Co. | Nashik (Dindori) | Aggregating smallholder produce into bulk WDRA-certified FPO lots. |
-| 3 | **Institutional Bulk Buyer** | Reliance Fresh Wholesale | Mumbai / Nashik | Demand RFQ posting, produce lot browsing by credibility score, escrow funding. |
-| 4 | **Retail & Processing Buyer** | Sahyadri Processing Exports | Pune District | Quality-graded Soybean & Grape procurement for export processing. |
-| 5 | **Storage Operator** | Nashik Cold Chain Storage Corp | Nashik | WDRA warehouse capacity listing, receipt issuance, temp control telemetry. |
-| 6 | **Transport Operator** | Maha Super Freight Logistics | Nashik | Ventilated truck listing, freight booking acceptance, route tracking. |
-| 7 | **Equipment Provider** | Krishi Harvester & Hiring | Ahmednagar | Harvester & tractor rental, RC machine verification management. |
-| 8 | **Labor Contractor** | Shinde Farm Labor Crew | Solapur | Dispatching harvesting labor teams, daily crew booking. |
-| 9 | **Input Supplier** | Maha Agri Seeds & Bio-Inputs | Nashik | Bulk bio-fertilizer & seed group-buy discounts for FPO clusters. |
-| 10 | **District Admin** | Shri. V. K. Patil | Nashik District | Provider verification queue with SLA badges, local dispute resolution, sync logs. |
-| 11 | **State Command Admin** | Dr. A. S. Deshmukh, IAS | Govt of Maharashtra | Statewide 4-color price heatmap, escalated appeals tribunal, system telemetry. |
-
----
-
-## Platform Technology Stack
-
-- **Frontend**: Next.js 15 (App Router), React 19, Vanilla CSS Glassmorphic Enterprise Styling, `lucide-react` Icon System (0 emojis), PWA Service Worker offline price caching.
-- **Backend**: Node.js, Express, TypeScript, Prisma ORM, PostgreSQL (Supabase / PGlite), JWT Authentication.
-- **Internationalization (i18n)**: English (`en`), Hindi (`hi`), Marathi (`mr`) for farmer-facing interfaces.
-- **Testing & Verification**: Playwright headless browser testing, unit test suites, database integrity verification scripts.
-
----
-
-## Application Sitemap & Key Routes
-
-| Route Path | Description | Access / Role |
-|---|---|---|
-| **`/demo`** | **Central Demo Role-Switcher Hub** | Evaluators & Judges (1-click role switcher) |
-| **`/farmer/home`** | Farmer Core Home Dashboard | Farmer / FPO Admin |
-| **`/farmer/prices`** | Live Mandi Prices & AGMARKNET Feed | Farmer / Public |
-| **`/farmer/sell`** | Post Produce Lot Form | Farmer |
-| **`/farmer/services`** | 5-Tier Farm Services Grid & Booking | Farmer / Provider Roles |
-| **`/farmer/offers`** | Farmer Offers & Escrow Payout Tracker | Farmer |
-| **`/buyer`** | Institutional Sourcing & Escrow Portal | Institutional & Retail Buyers |
-| **`/district-admin`** | District Verification & Dispute Console | District Nodal Officer |
-| **`/state-admin`** | State Command Dashboard & Price Heatmap | State Agriculture Officials |
-
----
-
-## Quick Start & Installation Guide
-
-### Prerequisites
-- Node.js `v20.0.0` or higher
-- npm `v10.0.0` or higher
-- PostgreSQL database (or Supabase connection string)
-
-### 1. Clone Repository & Install Dependencies
-```bash
-# Clone the repository
-git clone https://github.com/aaravgoyal510/sih.git
-cd sih
-
-# Install backend dependencies
-cd backend
-npm install
-
-# Install frontend dependencies
-cd ../frontend
-npm install
-```
-
-### 2. Environment Configuration
-Create a `.env` file inside `backend/`:
-```env
-PORT=4000
-DATABASE_URL="postgresql://user:password@localhost:5432/mahamarket?schema=public"
-JWT_SECRET="maha-market-secret-jwt-key-2026"
-JWT_EXPIRES_IN="7d"
-```
-
-Create a `.env.local` file inside `frontend/`:
-```env
-NEXT_PUBLIC_BACKEND_URL="http://localhost:4000"
-```
-
-### 3. Database Initialization & Realistic Seeding
-```bash
-cd backend
-
-# Push Prisma schema to PostgreSQL
-npx prisma db push
-
-# Seed realistic multi-district dataset (Nashik, Latur, Pune, Ahmednagar, Solapur, Nagpur)
-npx tsx src/scripts/seed-platform-data.ts
-
-# Verify database integrity
-npx tsx src/scripts/verify-db-integrity.ts
-```
-
-### 4. Running Locally
-In terminal 1 (Backend Express Server):
-```bash
-cd backend
+```sh
+npm run setup
+npm --prefix backend run db:check
+# Existing databases: apply the reviewed, additive product upgrade before starting new code.
+npm --prefix backend run db:upgrade
 npm run dev
-# Running at http://localhost:4000
 ```
 
-In terminal 2 (Frontend Next.js Application):
-```bash
-cd frontend
-npm run dev
-# Running at http://localhost:3000
+With both servers running, use another terminal:
+
+```sh
+npm run test:api
+npm run test:ui
+# With backend-only Supabase Storage credentials configured:
+npm --prefix backend run test:documents
 ```
 
-Open `http://localhost:3000/demo` in your browser to launch the **Demo Role-Switcher Hub**.
+Install browser binaries once if needed: `cd frontend`, then `npx playwright install chromium`.
 
-### 5. Production Build Verification
-```bash
-# Compile backend
-cd backend
-npm run build
+Build with `npm run build`. On Windows, stop the backend and worker before Prisma generation if its engine DLL is locked. Next development and production builds use separate `.next-dev` and `.next` directories.
 
-# Compile frontend static build (14 pages)
-cd ../frontend
-npm run build
-```
+**Database safety:** the old `backend/src/scripts/seed-platform-data.ts` deletes existing data. Do not run it against your current/shared database. The additive `npm --prefix backend run seed:opportunities` ensures the missing platform demo identity/FPO link and four tagged sample crop opportunities without resetting existing transactions. Initial schema provisioning is a separate operation for an explicitly empty database.
 
----
+## Portals
 
-## Design System & UI/UX Standards
+| Workspace | Route | Main flows |
+| --- | --- | --- |
+| Farmer | `/farmer/home` | Four primary actions: sell, prices, services, offers/payments |
+| Buyer | `/buyer` | Demand, produce sourcing, negotiation and simulated escrow |
+| FPO | `/fpo` | Member lots, compatible harvest pooling and bulk trade |
+| Five provider roles | `/provider` | Storage, transport, equipment, labor and inputs |
+| District administration | `/district-admin` | District-scoped verification and grievance decisions |
+| State administration | `/state-admin` | District-price grid, escalations and integration history |
+| Platform administration | `/platform-admin` | Statewide operational review and transactions |
 
-- **Mobile-First Responsive Layout**: Optimized for low-end mobile viewports (360px+) up to 4K desktop displays.
-- **Zero Sidebars**: Icon-first top headers and bottom action bars to maximize screen real estate on mobile devices.
-- **Zero Emojis**: Strictly enforced professional enterprise styling using `lucide-react` vector icons.
-- **High-Contrast Dark Theme**: Deep navy background (`#0f172a`), slate cards (`#1e293b`), and vibrant status badges (`#10b981` Green, `#f59e0b` Amber, `#ef4444` Red, `#94a3b8` Grey NO_DATA).
+The hub exposes 11 role types and two buyer examples. Actions use JWT-authenticated `/api/workspace` routes; switching a profile changes the actual acting identity. Legacy mutation routes that trusted caller-supplied party IDs are retired.
 
----
+## Transaction flow
 
-## License & SIH 2026 Submission Note
+1. Publish validated listings or requirements.
+2. Match demand and send offers; negotiate through seller counter-offers.
+3. Acceptance creates one booking, locks the sold quantity and rejects competing offers transactionally. A partial normal crop sale preserves the unsold quantity as a linked open lot; pooled lots require a full-quantity buyer until member-level partial allocation is supported.
+4. Buyer simulates escrow funding; seller starts/completes fulfillment; buyer confirms release.
+5. Save shared logistics instructions, print the immutable accepted agreement and inspect its event history, rate fulfillment or raise a dispute. Either participant may cancel an unfunded, unstarted booking with a recorded reason; the lot reopens without losing quantity.
+6. District/state decisions retain audit history, escalation scope and dispute credibility penalties.
 
-Developed for the **Smart India Hackathon (SIH) 2026** under the **Government of Maharashtra** problem statement. All rights reserved.
+Resource types: crop lots, cold storage, transport, equipment services, labor, used equipment, input group buying and contract farming. Provider publication requires approved, unexpired role verification. FPO pooling validates membership, crop/grade compatibility and double pooling in a serializable transaction.
+
+## Prices, offline behavior and jobs
+
+Prices retain source and observation date. Charts use observed history, not invented forecasts. Net-value estimates use entered quantity, per-market transport, commission and other sale costs. Saved observations render before a fresh feed request completes. Existing database samples are not proof of a successful live sync.
+
+The prices API now fetches upstream on access with a five-minute freshness window, manual refresh/cooldown and explicit live/cached/stale states. The worker attempts Agmarknet sync every 15 minutes, aggregation hourly and SLA escalation every 15 minutes. Only verified-ingestion rows enter new price aggregates; demo seed prices are excluded. See [MARKET_DATA.md](MARKET_DATA.md) for coverage limits, tests and the current upstream outage.
+
+A service worker serves an offline page with observations and the current account's crop draft previously saved on this device. Authenticated workspace responses and transaction mutations are not cached or queued. Guided selling, buyer comparisons, offers, services and price calculations provide English/Hindi/Marathi assistance; extended administrative/provider copy still needs localization before a multilingual field rollout.
+
+## Release boundaries
+
+See [DELIVERY.md](DELIVERY.md) for evidence, walkthrough and remaining deployment work. [PRD](PRD.md), [TechSpec](TechSpec.md), [AppFlow](AppFlow.md), [Design](Design.md), [Schema](Schema.md) and [ImplementationPlan](ImplementationPlan.md) describe the broader intended product, not proof that every roadmap item has shipped.
+
+Live payments, SMS/WhatsApp delivery and account recovery, government certificate checks, general listing media, validated forecasting and production operations require further integration. Verification now supports real private PNG/JPEG/PDF uploads (2 MB maximum), owner/scoped-reviewer downloads, duplicate-request protection and review audit records using server-only Supabase Storage credentials. File signatures are checked; malware scanning is not integrated, so downloads are forced attachments and files must not be treated as trusted merely because they passed format validation. Legacy FasalRakshak diagnosis is disabled because it presented unsupported confidence/treatment output and unscoped data access; its code and records are retained. In-app notifications persist new offer, booking, logistics and review events with server-side read state; historical events are not backfilled and external push delivery is not integrated. Admin/provider workspaces and parts of verification/dispute handling still contain English copy. Recorded simulated releases never count as verified on-time payments or realized farmer income.
+vercel

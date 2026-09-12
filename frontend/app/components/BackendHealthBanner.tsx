@@ -1,108 +1,73 @@
 'use client';
-
-import React, { useEffect, useState } from 'react';
-import { AlertTriangle, RefreshCw, CheckCircle2, Server } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { API_URL } from '../../lib/api-config';
 
 export default function BackendHealthBanner() {
-  const [isOffline, setIsOffline] = useState(false);
-  const [checking, setChecking] = useState(false);
+  const [status, setStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [detail, setDetail] = useState('Connecting to the API. A sleeping host may take about a minute to start.');
+  const [slow, setSlow] = useState(false);
+  const active = useRef<AbortController | null>(null);
 
-  const backendUrl = API_URL;
-
-  const checkHealth = async () => {
-    setChecking(true);
+  const checkHealth = useCallback(async () => {
+    if (active.current) return;
+    const controller = new AbortController();
+    active.current = controller;
+    setStatus('checking');
+    const slowTimer = setTimeout(() => setSlow(true), 4000);
+    const timeout = setTimeout(() => controller.abort('timeout'), 70000);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      const res = await fetch(`${backendUrl}/health`, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (res.ok) {
-        setIsOffline(false);
-      } else {
-        setIsOffline(true);
+      const response = await fetch(`${API_URL}/health`, { cache: 'no-store', signal: controller.signal });
+      if (!response.ok) throw new Error(`API gateway returned HTTP ${response.status}. Check backend deployment logs and BACKEND_URL on the frontend host.`);
+      const body = await response.json().catch(() => null);
+      if (body?.status !== 'ok' || body?.service !== 'KrishiSetu API') {
+        throw new Error('The health URL did not return the KrishiSetu API. Check the backend URL and redeploy the frontend.');
       }
-    } catch (err) {
-      setIsOffline(true);
+      setStatus('online');
+      setSlow(false);
+    } catch (error) {
+      if (controller.signal.reason === 'unmount') return;
+      setStatus('offline');
+      setDetail(controller.signal.aborted
+        ? 'API startup timed out. The backend may be waking up; retry shortly or check its deployment logs.'
+        : error instanceof Error ? error.message : 'Could not reach the API through the frontend gateway.');
     } finally {
-      setChecking(false);
+      clearTimeout(timeout);
+      clearTimeout(slowTimer);
+      if (active.current === controller) active.current = null;
     }
-  };
-
-  useEffect(() => {
-    checkHealth();
-    const interval = setInterval(checkHealth, 10000);
-    return () => clearInterval(interval);
   }, []);
 
-  if (!isOffline) {
-    return null;
-  }
+  useEffect(() => {
+    void checkHealth();
+    const interval = setInterval(() => { if (!document.hidden) void checkHealth(); }, 60000);
+    const online = () => { void checkHealth(); };
+    window.addEventListener('online', online);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('online', online);
+      active.current?.abort('unmount');
+      active.current = null;
+    };
+  }, [checkHealth]);
 
-  return (
-    <div
-      style={{
-        backgroundColor: '#7f1d1d',
-        borderBottom: '1px solid #ef4444',
-        color: '#fef2f2',
-        padding: '10px 20px',
-        fontSize: '0.85rem',
-        fontWeight: 600,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
-        zIndex: 2000,
-        position: 'relative',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div
-          style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            backgroundColor: '#b91c1c',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <AlertTriangle size={18} color="#fca5a5" />
-        </div>
-        <div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>Backend Connection Offline — Start API Server on Port 4000</span>
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#fecaca', marginTop: '2px' }}>
-            Cannot reach <code style={{ backgroundColor: '#451a03', padding: '1px 6px', borderRadius: '4px', color: '#fde68a' }}>{backendUrl}</code>. Run <code style={{ backgroundColor: '#451a03', padding: '1px 6px', borderRadius: '4px', color: '#fde68a' }}>cd backend && npm run dev</code> in terminal.
-          </div>
-        </div>
+  if (status === 'online' || (status === 'checking' && !slow)) return null;
+  return <aside role="status" aria-live="polite" style={{
+    background: status === 'offline' ? '#7f1d1d' : '#fff4d9',
+    color: status === 'offline' ? '#fff' : '#684a0c',
+    padding: '12px 20px', display: 'flex', alignItems: 'center',
+    justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', fontSize: 13,
+  }}>
+    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: '1 1 240px' }}>
+      <AlertTriangle size={20} aria-hidden="true" />
+      <div><strong>{status === 'checking' ? 'Connecting to backend…' : 'Backend connection unavailable'}</strong>
+        <p>{status === 'checking' ? 'Waiting for the API. A sleeping host can take about a minute to start.' : detail}</p>
+        {status === 'offline' && <p>Diagnostic: <a href={`${API_URL}/health`} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>API health check</a>. For a local tunnel, keep the local backend running.</p>}
       </div>
-
-      <button
-        onClick={checkHealth}
-        disabled={checking}
-        style={{
-          backgroundColor: '#b91c1c',
-          color: '#ffffff',
-          border: '1px solid #ef4444',
-          padding: '6px 14px',
-          borderRadius: '8px',
-          fontSize: '0.8rem',
-          fontWeight: 700,
-          cursor: 'pointer',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          transition: 'all 0.2s',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        <RefreshCw size={14} className={checking ? 'spin' : ''} />
-        {checking ? 'Checking...' : 'Retry Connection'}
-      </button>
     </div>
-  );
+    <button onClick={() => void checkHealth()} disabled={status === 'checking'} className="ks-button"
+      style={{ minHeight: 44 }}><RefreshCw size={15} aria-hidden="true" />
+      {status === 'checking' ? 'Connecting…' : 'Retry connection'}
+    </button>
+  </aside>;
 }

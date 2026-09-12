@@ -1,152 +1,20 @@
 'use client';
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DEMO_ROLES } from '../components/DemoRoleSwitcherHeader';
-import {
-  Compass,
-  ArrowRight,
-  CheckCircle2,
-  Building2,
-  Landmark,
-  ShieldCheck,
-  Zap,
-  Layers,
-  Sparkles
-} from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, ArrowUpRight, Building2, Leaf, ShieldCheck, Sprout, Tractor, Truck, Users, Warehouse, ShoppingBag, Landmark, Settings2, RefreshCw } from 'lucide-react';
+import { request, launchProfile, roleLabels } from '../../lib/workspace';
 
-export default function DemoRoleSwitcherHubPage() {
-  const router = useRouter();
+const icons: Record<string,any> = {FARMER:Sprout,FPO_ADMIN:Users,BUYER:ShoppingBag,STORAGE_OPERATOR:Warehouse,TRANSPORT_OPERATOR:Truck,EQUIPMENT_PROVIDER:Tractor,LABOR_CONTRACTOR:Users,INPUT_SUPPLIER:Leaf,DISTRICT_ADMIN:Building2,STATE_ADMIN:Landmark,PLATFORM_ADMIN:Settings2};
+const descriptions: Record<string,string> = {FARMER:'Your harvest deserves a better market. Sell produce, compare prices and book services.',FPO_ADMIN:'Bring member harvests together. Pool lots, meet demand and negotiate as one.',BUYER:'Source directly from farmers. Discover quality lots and manage procurement.',STORAGE_OPERATOR:'Put your capacity to work. Publish storage space and manage incoming bookings.',TRANSPORT_OPERATOR:'Connect farm gates to markets. Offer routes, capacity and delivery services.',EQUIPMENT_PROVIDER:'Make machinery more accessible. List equipment and operator packages.',LABOR_CONTRACTOR:'Match skilled crews with seasonal demand. Coordinate farm service bookings.',INPUT_SUPPLIER:'Serve farming communities. Offer inputs and fulfill group buying demand.',DISTRICT_ADMIN:'Build trust locally. Review provider documents and resolve district disputes.',STATE_ADMIN:'See the bigger picture. Monitor market coverage and resolve escalated cases.',PLATFORM_ADMIN:'Keep the network healthy. Inspect integrations and oversee platform governance.'};
 
-  const handleLaunchRole = (roleItem: typeof DEMO_ROLES[0]) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('maha_demo_role', roleItem.role);
-      localStorage.setItem('maha_party_name', roleItem.name);
-      localStorage.setItem('maha_district', roleItem.district);
-    }
-    router.push(roleItem.route);
-  };
-
-  return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      
-      {/* Header Banner */}
-      <header style={{ backgroundColor: '#1e293b', borderBottom: '1px solid #334155', padding: '24px 32px', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-              <Compass size={28} />
-            </div>
-            <div>
-              <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
-                KrishiSetu <span style={{ color: '#c084fc', fontWeight: 400 }}>| SIH 2026 Demo Role-Switcher Hub</span>
-              </h1>
-              <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
-                Seamlessly evaluate all 11 supported party roles across the Maharashtra Direct Farm Linkage & Services Engine.
-              </p>
-            </div>
-          </div>
-
-          <div style={{ backgroundColor: '#065f46', color: '#34d399', padding: '8px 16px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CheckCircle2 size={16} /> 100% Seed Dataset Live (Step 17 Verified)
-          </div>
-        </div>
-      </header>
-
-      {/* Main Grid */}
-      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '36px 24px' }}>
-        
-        {/* Intro Card */}
-        <div style={{ backgroundColor: '#1e293b', padding: '24px', borderRadius: '16px', border: '1px solid #334155', marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-              1-Click Role Evaluation Portal for Judges & Evaluators
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '6px', maxWidth: '800px' }}>
-              Select any of the 11 role cards below to enter that actor's authenticated workflow immediately. All data rendered uses the real Step 17 multi-district, multi-provider dataset (Nashik, Latur, Pune, Ahmednagar, Solapur, Nagpur).
-            </p>
-          </div>
-          <div style={{ backgroundColor: '#1e3a8a', color: '#60a5fa', padding: '12px 18px', borderRadius: '12px', border: '1px solid #2563eb', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={18} color="#fbbf24" /> 11 Roles Ready
-          </div>
-        </div>
-
-        {/* Roles Grid (Mobile-First 3 Column Grid) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
-          {DEMO_ROLES.map((r) => {
-            const Icon = r.icon;
-            return (
-              <div
-                key={r.id}
-                style={{
-                  backgroundColor: '#1e293b',
-                  borderRadius: '16px',
-                  border: '1px solid #334155',
-                  padding: '24px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-                  transition: 'transform 0.2s, border-color 0.2s',
-                }}
-              >
-                <div>
-                  {/* Top Header Row */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: r.badgeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
-                      <Icon size={24} />
-                    </div>
-                    <span style={{ backgroundColor: '#0f172a', color: '#94a3b8', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #334155', fontFamily: 'monospace' }}>
-                      {r.role}
-                    </span>
-                  </div>
-
-                  {/* Title & Seed Entity Info */}
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-                    {r.title}
-                  </h3>
-                  <div style={{ fontSize: '0.85rem', color: '#38bdf8', fontWeight: 600, marginBottom: '2px' }}>
-                    {r.name}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '14px' }}>
-                    District: {r.district}
-                  </div>
-
-                  {/* Description Box */}
-                  <div style={{ backgroundColor: '#0f172a', padding: '12px 14px', borderRadius: '10px', border: '1px solid #1e293b', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '20px', minHeight: '52px' }}>
-                    {r.desc}
-                  </div>
-                </div>
-
-                {/* Big Icon-First Action Button */}
-                <button
-                  onClick={() => handleLaunchRole(r)}
-                  style={{
-                    width: '100%',
-                    backgroundColor: r.badgeColor,
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '14px',
-                    borderRadius: '12px',
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    transition: 'opacity 0.2s',
-                  }}
-                >
-                  <Icon size={18} /> Launch {r.title} View <ArrowRight size={16} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-      </main>
-    </div>
-  );
+export default function DemoHub() {
+  const [profiles,setProfiles]=useState<any[]>([]),[error,setError]=useState(''),[busy,setBusy]=useState(''),[category,setCategory]=useState('All portals');
+  const router=useRouter();
+  useEffect(()=>{request('/demo-profiles').then(d=>setProfiles(d.profiles)).catch(e=>setError(e.message));},[]);
+  const rank=['FARMER','FPO_ADMIN','BUYER','STORAGE_OPERATOR','TRANSPORT_OPERATOR','EQUIPMENT_PROVIDER','LABOR_CONTRACTOR','INPUT_SUPPLIER','DISTRICT_ADMIN','STATE_ADMIN','PLATFORM_ADMIN'];
+  const unique=rank.flatMap(role=>{const candidates=profiles.filter(p=>p.roles.includes(role));return candidates.slice(0,role==='BUYER'?2:1).map(p=>({...p,displayRole:role}));});
+  const visible=unique.filter(p=>category==='All portals'||(category==='Farmers & buyers'?['FARMER','FPO_ADMIN','BUYER'].includes(p.displayRole):category==='Service providers'?['STORAGE_OPERATOR','TRANSPORT_OPERATOR','EQUIPMENT_PROVIDER','LABOR_CONTRACTOR','INPUT_SUPPLIER'].includes(p.displayRole):p.displayRole.includes('ADMIN')&&p.displayRole!=='FPO_ADMIN'));
+  async function enter(p:any){setBusy(p.id);setError('');try{router.push(await launchProfile(p));}catch(e:any){setError(e.message);}finally{setBusy('');}}
+  return <div className="ks-hub"><header className="ks-global-header"><Link href="/demo" className="ks-brand"><span><Leaf size={24}/></span><div>KrishiSetu<small>FROM FARM TO OPPORTUNITY</small></div></Link><div className="ks-header-actions"><span className="ks-ps-tag">SIH 2026 · PS 26132</span><Link className="ks-switch" href="/login">Farmer sign in <ArrowUpRight size={15}/></Link></div></header><main className="ks-hub-main"><section className="ks-hero"><div className="ks-hero-copy"><p className="ks-eyebrow"><span className="ks-dot"/> ONE CONNECTED AGRICULTURAL MARKETPLACE</p><h1>Better connections.<br/><em>Better harvest value.</em></h1><p>From a farmer’s first listing to a buyer’s final delivery. One shared platform for Maharashtra’s agricultural community.</p><a href="#portals" className="ks-button">Find your workspace <ArrowRight size={18}/></a><div className="ks-hero-foot"><ShieldCheck size={17}/> Direct trade · Transparent prices · Accountable services</div></div><div className="ks-hero-visual" aria-label="Farmers connected to buyers and farm services"><div className="ks-orbit orbit-one"/><div className="ks-orbit orbit-two"/><div className="ks-orbit orbit-three"/><div className="ks-visual-core"><Leaf size={60}/><strong>KrishiSetu</strong><span>Grow. Connect. Prosper.</span></div><div className="ks-float farm"><Sprout/><div><b>Farmers & FPOs</b><small>Stronger together</small></div></div><div className="ks-float buyer"><ShoppingBag/><div><b>Direct market access</b><small>Beyond the middleman</small></div></div><div className="ks-float service"><Truck/><div><b>Farm services</b><small>Storage to delivery</small></div></div></div></section><section className="ks-hub-strip"><div><strong>11</strong><span>Role types, one platform</span></div><div><strong>8</strong><span>Marketplace resources</span></div><div><strong>36</strong><span>Maharashtra districts</span></div><div><strong>3</strong><span>Farmer languages</span></div></section><section id="portals" className="ks-portals"><div className="ks-section-heading"><div><p className="ks-eyebrow">A WORKSPACE FOR EVERY PARTNER</p><h2>Where do you fit in?</h2></div><span className="ks-muted">Local evaluation · saved database profiles</span></div><div className="ks-tabs">{['All portals','Farmers & buyers','Service providers','Administration'].map(c=><button key={c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c}</button>)}</div>{error&&<div className="ks-alert error" role="alert">{error}</div>}{!profiles.length&&!error&&<div className="ks-loading"><RefreshCw className="spin"/>Loading available profiles…</div>}<div className="ks-portal-grid">{visible.map(p=>{const Icon=icons[p.displayRole]||Users;return <button key={`${p.id}-${p.displayRole}`} disabled={!!busy} className="ks-portal-card" onClick={()=>enter(p)}><div className="ks-portal-card-top"><span className={`ks-portal-icon ${p.displayRole.includes('ADMIN')?'purple':''}`}><Icon size={27}/></span><ArrowUpRight size={21}/></div><h3>{roleLabels[p.displayRole]}</h3><p>{descriptions[p.displayRole]}</p><div className="ks-profile"><span className="ks-avatar">{p.name.charAt(0)}</span><span><b>{p.name}</b><small>{p.district}</small></span></div><div className="ks-enter">{busy===p.id?'Opening workspace…':'Enter workspace'}<ArrowRight size={16}/></div></button>;})}</div></section><footer className="ks-hub-footer"><span><Leaf size={18}/> KrishiSetu · Built for Maharashtra’s farming community</span><span>Demo payments are simulated. Portal access is for local evaluation.</span></footer></main></div>;
 }

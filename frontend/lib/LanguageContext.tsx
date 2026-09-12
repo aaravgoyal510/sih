@@ -19,7 +19,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [language, setLanguageState] = useState<Language>('en');
 
   useEffect(() => {
-    const saved = localStorage.getItem('maha_lang') as Language;
+    let saved:Language|null=null;try{saved=localStorage.getItem('maha_lang') as Language;}catch{}
     if (saved && (saved === 'en' || saved === 'hi' || saved === 'mr')) {
       setLanguageState(saved);
     }
@@ -27,8 +27,10 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('maha_lang', lang);
+    try{localStorage.setItem('maha_lang', lang);}catch{}
   };
+
+  useEffect(() => { document.documentElement.lang = language; }, [language]);
 
   const t = (key: string): string => {
     const dict = TRANSLATIONS[language] || TRANSLATIONS['en'];
@@ -54,7 +56,7 @@ export const LanguageTogglePill: React.FC = () => {
     <div
       style={{
         display: 'inline-flex',
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        backgroundColor: '#e8f0e8',
         backdropFilter: 'blur(4px)',
         borderRadius: '20px',
         padding: '3px',
@@ -66,7 +68,7 @@ export const LanguageTogglePill: React.FC = () => {
         style={{
           border: 'none',
           backgroundColor: language === 'en' ? '#ffffff' : 'transparent',
-          color: language === 'en' ? '#15803d' : '#ffffff',
+          color: language === 'en' ? '#15803d' : '#385344',
           fontWeight: 700,
           fontSize: '0.75rem',
           borderRadius: '16px',
@@ -82,7 +84,7 @@ export const LanguageTogglePill: React.FC = () => {
         style={{
           border: 'none',
           backgroundColor: language === 'hi' ? '#ffffff' : 'transparent',
-          color: language === 'hi' ? '#15803d' : '#ffffff',
+          color: language === 'hi' ? '#15803d' : '#385344',
           fontWeight: 700,
           fontSize: '0.75rem',
           borderRadius: '16px',
@@ -98,7 +100,7 @@ export const LanguageTogglePill: React.FC = () => {
         style={{
           border: 'none',
           backgroundColor: language === 'mr' ? '#ffffff' : 'transparent',
-          color: language === 'mr' ? '#15803d' : '#ffffff',
+          color: language === 'mr' ? '#15803d' : '#385344',
           fontWeight: 700,
           fontSize: '0.75rem',
           borderRadius: '16px',

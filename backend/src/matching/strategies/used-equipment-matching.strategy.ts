@@ -71,9 +71,15 @@ export class UsedEquipmentMatchingStrategy implements MatchingStrategy {
         );
 
         return {
-          listing: candidate,
+          listingId: candidate.id,
+          title: `${listingAttrs.machineType} (${listingConditionGrade})`,
+          resourceType: candidate.resourceType,
+          district: candidate.district,
+          price: candidate.price || 0,
+          partyName: candidate.party.name,
+          credibilityScore: candidate.party.credibility?.score || 50,
           score: totalScore,
-          scoreBreakdown: {
+          subScores: {
             machineTypeMatch: machineTypeScore,
             conditionGradeFit: conditionScore,
             distance: distanceScore,
