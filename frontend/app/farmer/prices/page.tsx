@@ -1,7 +1,7 @@
 'use client';
 import React,{useEffect,useState} from 'react';
 import Link from 'next/link';
-import {TrendingUp,MapPin,RefreshCw,WifiOff} from 'lucide-react';
+import {TrendingUp,MapPin,RefreshCw,WifiOff,ArrowUpRight,ArrowDownRight,Minus} from 'lucide-react';
 import {API_URL} from '../../../lib/api-config';
 import {money} from '../../../lib/workspace';
 import {useLanguage} from '../../../lib/LanguageContext';
@@ -113,7 +113,19 @@ export default function Prices() {
   }
 
   const series = Array.from(daily.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([day, values]) => ({ day, value: values.reduce((s, n) => s + n, 0) / values.length })).slice(-14);
-  const lo = Math.min(...series.map(p => p.value)) * .95, hi = Math.max(...series.map(p => p.value)) * 1.05;
+
+  const latestObs = series.length ? series[series.length - 1] : null;
+  const initialObs = series.length ? series[0] : null;
+  const priceChange = (latestObs && initialObs && series.length > 1) ? Number((latestObs.value - initialObs.value).toFixed(2)) : null;
+  const pctChange = (initialObs && initialObs.value > 0 && priceChange !== null) ? Number(((priceChange / initialObs.value) * 100).toFixed(1)) : null;
+
+  const values = series.map(p => p.value);
+  const minVal = values.length ? Math.min(...values) : 0;
+  const maxVal = values.length ? Math.max(...values) : 100;
+  const spread = maxVal - minVal || 1;
+  const lo = Math.max(0, minVal - spread * 0.15);
+  const hi = maxVal + spread * 0.15;
+  const range = hi - lo || 1;
 
   const cropOptions = Array.from(new Set([...CROPS, crop, ...prices.map(p => p.crop)])).sort();
   const districtOptions = Array.from(new Set([...DISTRICTS, district, ...prices.map(p => p.district)])).sort();
@@ -175,23 +187,116 @@ export default function Prices() {
         </section>
 
         <section className="ks-panel">
-          <h2>{c(crop)} · {district}</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <h2>{c(crop)} · {district}</h2>
+              {latestObs && (
+                <div style={{ marginTop: '6px', display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '2.2rem', fontWeight: 800, color: '#176448', letterSpacing: '-0.5px' }}>
+                    {money(latestObs.value)}/<small style={{ fontSize: '1.2rem', fontWeight: 600 }}>kg</small>
+                  </span>
+                  {priceChange !== null && initialObs && (
+                    <span
+                      style={{
+                        fontSize: '0.88rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        padding: '4px 9px',
+                        borderRadius: '6px',
+                        backgroundColor: priceChange > 0 ? '#e6f4ea' : priceChange < 0 ? '#fce8e6' : '#f1f3f4',
+                        color: priceChange > 0 ? '#137333' : priceChange < 0 ? '#c5221f' : '#5f6368',
+                      }}
+                    >
+                      {priceChange > 0 ? <ArrowUpRight size={15} /> : priceChange < 0 ? <ArrowDownRight size={15} /> : <Minus size={15} />}
+                      {priceChange > 0 ? `+${money(priceChange)}` : priceChange < 0 ? `−${money(Math.abs(priceChange))}` : '₹0.00'}
+                      {pctChange !== null && ` (${priceChange >= 0 ? '+' : ''}${pctChange}%)`} {c('since')} {initialObs.day}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           {series.length > 1 ? (
-            <>
-              <svg viewBox="0 0 600 180" role="img" aria-label={c('Observed price history')} style={{ width: '100%', height: 180 }}>
-                <polyline fill="none" stroke="#176448" strokeWidth="3" points={series.map((p, i) => `${20 + i * 560 / (series.length - 1)},${150 - (p.value - lo) / (hi - lo) * 125}`).join(' ')} />
-                {series.map((p, i) => (
-                  <circle key={p.day} cx={20 + i * 560 / (series.length - 1)} cy={150 - (p.value - lo) / (hi - lo) * 125} r="4" fill="#176448">
-                    <title>{p.day}: {money(p.value)}/kg</title>
-                  </circle>
-                ))}
+            <div style={{ marginTop: 16 }}>
+              <svg viewBox="0 0 600 210" role="img" aria-label={c('Observed price history')} style={{ width: '100%', height: 210, overflow: 'visible' }}>
+                {/* Horizontal reference grid lines */}
+                <line x1="35" y1="35" x2="575" y2="35" stroke="#e6ece8" strokeDasharray="3 3" />
+                <text x="30" y="39" textAnchor="end" fontSize="10" fill="#888">{money(hi)}</text>
+
+                <line x1="35" y1="155" x2="575" y2="155" stroke="#e6ece8" strokeDasharray="3 3" />
+                <text x="30" y="159" textAnchor="end" fontSize="10" fill="#888">{money(lo)}</text>
+
+                {/* Trend line */}
+                <polyline
+                  fill="none"
+                  stroke="#176448"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points={series.map((p, i) => `${35 + i * 540 / (series.length - 1)},${155 - (p.value - lo) / range * 120}`).join(' ')}
+                />
+
+                {/* Data point nodes with legible rupee price labels */}
+                {series.map((p, i) => {
+                  const cx = 35 + i * 540 / (series.length - 1);
+                  const cy = 155 - (p.value - lo) / range * 120;
+                  const isLast = i === series.length - 1;
+                  return (
+                    <g key={p.day}>
+                      {/* Price label directly above each node */}
+                      <rect
+                        x={cx - 28}
+                        y={cy - 27}
+                        width="56"
+                        height="18"
+                        rx="4"
+                        fill={isLast ? '#176448' : '#ffffff'}
+                        stroke={isLast ? '#176448' : '#cbd5e1'}
+                        strokeWidth="1"
+                      />
+                      <text
+                        x={cx}
+                        y={cy - 14}
+                        textAnchor="middle"
+                        fontSize="11"
+                        fontWeight={isLast ? '700' : '600'}
+                        fill={isLast ? '#ffffff' : '#1e293b'}
+                      >
+                        {money(p.value)}
+                      </text>
+
+                      {/* Circle node */}
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={isLast ? '5' : '4'}
+                        fill={isLast ? '#176448' : '#ffffff'}
+                        stroke="#176448"
+                        strokeWidth="2.5"
+                      >
+                        <title>{p.day}: {money(p.value)}/kg</title>
+                      </circle>
+
+                      {/* Date label directly below */}
+                      <text x={cx} y="182" textAnchor="middle" fontSize="10" fontWeight="500" fill="#64748b">
+                        {p.day.slice(5)}
+                      </text>
+                    </g>
+                  );
+                })}
               </svg>
-              <p>{series[0].day} → {series[series.length - 1].day}</p>
-            </>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#64748b', marginTop: '4px' }}>
+                <span>{c('Observed range')}: {series[0].day} → {series[series.length - 1].day}</span>
+                <span>{series.length} {c('observations')}</span>
+              </div>
+            </div>
           ) : series.length === 1 ? (
-            <div className="ks-panel" style={{ margin: '12px 0', padding: '16px', background: 'var(--ks-bg-subtle,#f4f8f6)', borderRadius: '8px' }}>
+            <div className="ks-panel" style={{ margin: '14px 0', padding: '16px', background: 'var(--ks-bg-subtle,#f4f8f6)', borderRadius: '8px', borderLeft: '4px solid #176448' }}>
               <p className="ks-eyebrow" style={{ marginBottom: 4 }}>{c('Latest Recorded Price')}</p>
-              <h3 style={{ fontSize: '1.8rem', margin: '4px 0', color: '#176448' }}>{money(series[0].value)}/kg</h3>
+              <h3 style={{ fontSize: '2rem', margin: '4px 0', color: '#176448', fontWeight: 800 }}>{money(series[0].value)}/kg</h3>
               <p style={{ fontSize: '0.9rem', color: '#555', margin: '4px 0' }}>{c('Observed date')}: {series[0].day}</p>
               <span className="ks-badge" style={{ marginTop: 8, display: 'inline-block' }}>{c('Single observation on record — 2+ dates needed for trend graph')}</span>
             </div>
