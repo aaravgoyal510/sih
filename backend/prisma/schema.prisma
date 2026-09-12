@@ -26,6 +26,9 @@ model Party {
   district String
   village  String?
   roles    PartyRole[]
+  // BUYER parties are deliberately classified by purchasing pattern, not a new
+  // authorization role. Null preserves existing records until reviewed.
+  buyerType BuyerType?
   fpoId    String?
   fpo      Fpo?        @relation(fields: [fpoId], references: [id])
 
@@ -170,6 +173,11 @@ enum PartyRole {
   DISTRICT_ADMIN
   STATE_ADMIN
   PLATFORM_ADMIN
+}
+
+enum BuyerType {
+  LOCAL
+  BULK
 }
 
 model Fpo {

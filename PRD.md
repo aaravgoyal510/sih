@@ -14,6 +14,8 @@ KrishiSetu turns those constraints into an explainable comparison of expected ta
 
 ## 2. Why not e-NAM?
 
+> e-NAM shows the farmer market prices. KrishiSetu goes further — it works out what the farmer will actually take home after transport, storage, crop quantity and quality, buyer reliability, and timing. Then it helps the farmer act on that, all in one place.
+
 > e-NAM tells the farmer where market prices exist. KrishiSetu determines the farmer's expected net realization after transport, storage, quantity, quality, buyer reliability and timing, and then helps execute that decision through the same transaction ecosystem.
 
 This is our positioning shorthand, not a claim that e-NAM only lists prices. e-NAM also supports electronic trading, payment and logistics workflows. Our proposed differentiation is a farmer-specific, explainable decision layer over market and execution options, not exclusive ownership of those transaction capabilities. See [e-NAM overview](https://enam.gov.in/) and [registration and logistics guidance](https://www.enam.gov.in/web/resources/registration-guideline).
@@ -22,8 +24,16 @@ The team's SasyaSetu/AgriLink comparison motivates this pivot; their feature cov
 
 ## 3. Value proposition and users
 
+**KrishiSetu — Farmer Net-Realization & Assured Market Decision Platform** helps a farmer figure out where, when, and how to sell a crop to get the most money in hand.
+
+Buyer types are explicit throughout the product:
+
+- **Local Buyer** — a trader or mandi agent who buys smaller quantities nearby.
+- **Bulk Buyer** — an FPO, processor or exporter who buys larger quantities, often at better rates but with more grading, contract and delivery requirements.
+
 For farmers: compare money likely to reach their pocket, understand uncertainty, choose freely and track the outcome.
-For buyers: discover feasible lots and make executable, transparent offers; reliability becomes visible.
+For Local Buyers: discover feasible nearby smaller lots and make executable, transparent offers; reliability becomes visible.
+For Bulk Buyers: discover FPO/processor/exporter-scale lots and state grade, quantity, contract and delivery requirements so the farmer can compare the true take-home outcome.
 For FPOs: demonstrate each member's net benefit from pooling after shared costs.
 For storage/transport providers: expose priced, available capacity when it improves a sale decision.
 For district/state teams: resolve execution failures first; later use privacy-preserving outcome aggregates to identify bottlenecks.
@@ -43,6 +53,8 @@ The baseline is the farmer's feasible sell-now option, named and timestamped; ne
 Only feasible candidates enter ranking: quantity/grade fit, valid quote, availability, required verification and non-suspended counterparties. Missing critical inputs produce “More information needed,” not a fabricated best option. Farmer-entered scenarios remain explicitly labelled estimates. Waiting scenarios require a horizon, upside/downside, assumptions and a named risk factor; missing weather data means weather risk unknown.
 
 ## 5. Core product primitives
+
+Product rule: every capability must answer the farmer's one question: **"Where, when, and how should I sell my crop to get the most money in my pocket?"**
 
 ### 5.1 Explainable Recommendation Card
 
@@ -71,6 +83,10 @@ The fixture compares ₹25,850 with ₹23,000 for the same lot; a hypothetical t
 Feature Justification: answers all three parts of the driving question with a decision the farmer can inspect and challenge.
 
 ### 5.2 Visible KrishiTrust Score
+
+Every buyer score, buyer profile and Recommendation Card identifies the counterparty as a **Local Buyer** or **Bulk Buyer**. A trust score must never hide the buyer type because the quantity, grading, contract and delivery burden changes the farmer's net-realization decision.
+
+Required UI fixture: **Ramesh Traders (Local Buyer) — 87/100 — HIGH TRUST**; Verified KYC ✓; Transactions 47; On-time payments 96%; Disputes 1; Cancelled orders 2; Farmer rating 4.7/5. The same visible metric set applies to Bulk Buyers.
 
 TrustScore belongs to a party in a role (BUYER initially; FARMER proposed separately). It includes score 0–100, HIGH TRUST / MEDIUM TRUST / LOW TRUST tier, verified KYC, total completed transactions, on-time payment percentage, disputes count, cancelled orders, counterpart rating out of five, denominators, evidence time, formula version and suspension state.
 
@@ -128,6 +144,15 @@ Feature Justification: makes “how should I sell?” include the likelihood of 
 Four implemented primary farmer entry points: Sell my crop; Market prices and take-home comparison; Services; My offers & payments. Services retains storage, transport and other existing providers, with contextual access to FPO membership. Saved decisions and account verification are secondary links. This preserves access while reducing the first-screen choices.
 
 ## 7. Phase focus and milestones
+
+Internal roadmap in plain language (these labels are not farmer UI copy):
+
+1. **Farmer ki kamai badhana** — increase farmer income.
+2. **Sab kuch saaf-saaf dikhana** — show terms, costs and uncertainty clearly.
+3. **Bharosa banana** — build trustworthy buyer and transaction evidence.
+4. **Chhote kisano ko jodna FPO ke through** — use farmer groups (FPOs) where a bigger order can improve individual returns.
+5. **Existing infra ka behtar use** — use storage and transport capacity when it improves the farmer's result.
+6. **Sarkar/state ke liye data insights** — privacy-safe state-level learning from outcomes.
 
 Phase focus: farmer income → transparency → trust → FPO aggregation → infrastructure utilization → state intelligence
 

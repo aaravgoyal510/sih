@@ -7,7 +7,7 @@ import { signToken } from '../utils/jwt';
 import { createHash } from 'node:crypto';
 import { validateAttributes } from '../schemas/resource-attributes.schema';
 import { matchingEngine } from '../matching/matching-engine';
-import {scoreTrust} from '../services/trust-score';
+import {recomputeTrustBatch} from '../decision/trust';
 import {makeRecommendation} from '../services/recommendation';
 import {notifyParties,tradeEvent} from '../services/trade-events';
 import {DOCUMENT_BUCKET,MAX_DOCUMENT_BYTES,StorageFailure,documentExtension,storageObjectPath,uploadDocument,downloadDocument} from '../services/verification-storage';
@@ -17,12 +17,17 @@ import {decisionsForAcceptance,linkDecisions,releaseDecisionCapacity} from '../d
 
 const router = Router();
 const publicUrl=z.string().url().refine(value=>['https:','http:'].includes(new URL(value).protocol),'Use an HTTP or HTTPS document link.');
+const evidenceUrl=z.string().refine(value=>publicUrl.safeParse(value).success||new RegExp(`^storage://${DOCUMENT_BUCKET}/[a-f0-9-]{36}/[a-f0-9-]{36}-[a-f0-9]{64}\.(png|jpg|pdf)$`).test(value),'Use a valid evidence file.');
 class Failure extends Error { constructor(public status: number, message: string) { super(message); } }
 const check = (condition: unknown, status: number, message: string) => { if (!condition) throw new Failure(status, message); };
 const run = (handler: (req: AuthenticatedRequest, res: Response) => Promise<void>) => (req: AuthenticatedRequest, res: Response, next: NextFunction) => handler(req, res).catch(next);
 const adminRoles = ['DISTRICT_ADMIN', 'STATE_ADMIN', 'PLATFORM_ADMIN'];
 const isAdmin = (p: any) => p.roles.some((r: string) => adminRoles.includes(r));
 const isState = (p: any) => p.roles.some((r: string) => ['STATE_ADMIN', 'PLATFORM_ADMIN'].includes(r));
+// District values came from older imports with mixed case (for example `pune` and
+// `Pune`). Jurisdiction must be consistent without exposing another district.
+const sameDistrict = (left?: string | null, right?: string | null) => !!left && !!right && left.trim().toLocaleLowerCase('en-IN') === right.trim().toLocaleLowerCase('en-IN');
+const districtFilter = (district?: string) => district ? { equals: district, mode: 'insensitive' as const } : undefined;
 const publicParty = { id: true, name: true, district: true, roles: true, credibility: true } as const;
 const offerInclude = { decisionQuote:{select:{id:true,status:true,validUntil:true,recommendations:{where:{selection:{isNot:null}},select:{id:true,farmerPartyId:true,selection:{select:{id:true,bookingId:true,selectedAt:true}}}}}},listing: { include: { party: { select: publicParty } } }, requirement: { include: { party: { select: publicParty } } }, booking: { include: { dispute: true, ratings: true, events:{orderBy:{createdAt:'desc'},take:20} } } } as const;
 const documents: Record<string, string[]> = {
@@ -65,6 +70,18 @@ router.post('/demo-session', run(async (req, res) => {
   res.json({ success: true, token, party: profile });
 }));
 router.use(authenticateToken);
+// Keep explicitly labelled evaluation fixtures stable for the demo. All other
+// buyer profiles fall through to the live decision trust recalculation route.
+router.get('/trust/:partyId',async(req,res,next)=>{
+ try{
+  const partyId=z.string().uuid().parse(req.params.partyId);
+  const seeded=await prisma.trustScore.findUnique({where:{partyId_role:{partyId,role:'BUYER'}}});
+  if(seeded?.formulaVersion!=='demo-fixture-v1')return next();
+  const buyer=await prisma.party.findUnique({where:{id:partyId},select:{id:true,name:true,roles:true}});
+  check(buyer?.roles.includes('BUYER'),404,'Buyer profile not found.');
+  res.setHeader('Cache-Control','private, no-store');res.json({success:true,buyer:{id:buyer!.id,name:buyer!.name},trust:seeded.evidenceSnapshot});
+ }catch(error){next(error);}
+});
 router.use(decisionRoutes);
 router.post('/recommendations/preview',run(async(req,res)=>{
   const paise=z.number().int().min(0).max(1e12);
@@ -113,17 +130,16 @@ router.post('/updates/read',run(async(req,res)=>{
 router.use('/ads',(_req,res)=>{res.status(410).json({success:false,error:'Advertising is outside the current farmer-income phase. Existing records are retained.'});});
 router.get('/trust/:partyId',run(async(req,res)=>{
   const partyId=z.string().uuid().parse(req.params.partyId);
-  const party=await prisma.party.findUnique({where:{id:partyId},select:{id:true,name:true,roles:true,credibility:true,verifications:{where:{documentType:'KYC',status:'APPROVED',OR:[{expiresAt:null},{expiresAt:{gt:new Date()}}]},select:{id:true}}}});
+  const party=await prisma.party.findUnique({where:{id:partyId},select:{id:true,name:true,roles:true}});
   check(party?.roles.includes('BUYER'),404,'Buyer profile not found.');
-  const [orders,ratings,disputesCount]=await Promise.all([
-    prisma.booking.groupBy({by:['fulfillmentStatus'],where:{offer:{requirement:{partyId}}},_count:{_all:true}}),
-    prisma.rating.aggregate({where:{receiverPartyId:partyId},_avg:{score:true},_count:{score:true}}),
-    prisma.dispute.count({where:{OR:[{raisedByPartyId:partyId},{respondentPartyId:partyId}]}}),
-  ]);
-  const count=(status:string)=>orders.find(o=>o.fulfillmentStatus===status)?._count._all||0;
-  const trust=scoreTrust({partyId,role:'BUYER',kycVerified:!!party!.verifications.length,totalTransactions:count('COMPLETED'),eligibleOrders:orders.reduce((sum,o)=>sum+o._count._all,0),onTimePayments:0,eligiblePayments:0,attributableCancellations:null,cancelledOrdersCount:count('CANCELLED'),counterpartRating:ratings._avg.score===null?null:Math.round(ratings._avg.score*10)/10,ratingCount:ratings._count.score,disputesCount,confirmedAtFaultDisputes:party!.credibility?.disputeCount||0,suspended:party!.credibility?.suspended||false});
-  const stored={partyId,role:'BUYER' as const,score:trust.score,tier:trust.tier as 'HIGH_TRUST'|'MEDIUM_TRUST'|'LOW_TRUST',kycVerified:trust.kycVerified,totalTransactions:trust.totalTransactions,eligibleOrders:trust.eligibleOrders,onTimePayments:trust.onTimePayments,eligiblePayments:trust.eligiblePayments,onTimePaymentPct:trust.onTimePaymentPct,onTimeFulfillmentPct:null,disputesCount:trust.disputesCount,confirmedAtFaultDisputes:trust.confirmedAtFaultDisputes,cancelledOrdersCount:trust.cancelledOrdersCount,counterpartRating:trust.counterpartRating,ratingCount:trust.ratingCount,provisional:trust.provisional,suspended:trust.suspended,formulaVersion:trust.formulaVersion,evidenceSnapshot:trust,asOf:new Date(trust.asOf)};
-  await prisma.trustScore.upsert({where:{partyId_role:{partyId,role:'BUYER'}},create:stored,update:stored});
+  // Named evaluation accounts use an explicit, clearly labelled demo snapshot.
+  // Real buyers continue to be recalculated from transaction evidence on every read.
+  const seeded=await prisma.trustScore.findUnique({where:{partyId_role:{partyId,role:'BUYER'}}});
+  if(seeded?.formulaVersion==='demo-fixture-v1'){
+    res.setHeader('Cache-Control','private, no-store');res.json({success:true,buyer:{id:partyId,name:party!.name},trust:seeded.evidenceSnapshot});return;
+  }
+  const trusts=await recomputeTrustBatch(prisma,[partyId]);const trust=trusts.get(partyId);
+  check(trust,404,'Buyer profile not found.');
   res.setHeader('Cache-Control','private, no-store');res.json({success:true,buyer:{id:partyId,name:party!.name},trust});
 }));
 router.get('/farmer-home', run(async (req,res)=>{
@@ -157,11 +173,11 @@ router.get('/snapshot', run(async (req, res) => {
   const [listings, requirements, offers, verifications, disputes, logs, stats, members] = await Promise.all([
     needs('overview','market','members') ? prisma.listing.findMany({ where: section==='overview'&&!admin ? { partyId:p.id } : undefined, include: { party: { select: publicParty } }, orderBy: { createdAt: 'desc' }, take: 300 }) : [],
     needs('overview','market') ? prisma.requirement.findMany({ where: section==='overview' ? {partyId:p.id} : undefined, include: { party: { select: publicParty }, _count: { select: { offers: { where: { status: 'ACCEPTED' } } } } }, orderBy: { createdAt: 'desc' }, take: 200 }) : [],
-    needs('overview','offers') ? prisma.offer.findMany({ where: admin ? { listing: { district } } : { OR: [{ listing: { partyId: p.id } }, { requirement: { partyId: p.id } }] }, include: offerInclude, orderBy: { createdAt: 'desc' }, take: 200 }) : [],
-    needs('overview','verification') ? prisma.verification.findMany({ where: admin ? { party: { district } } : { partyId: p.id }, include: { party: { select: publicParty }, auditLogs: true }, orderBy: { createdAt: 'desc' }, take: 200 }) : [],
-    needs('disputes') || (admin&&needs('overview')) ? prisma.dispute.findMany({ where: admin ? { booking: { offer: { listing: { district } } } } : { OR: [{ raisedByPartyId: p.id }, { respondentPartyId: p.id }] }, include: { auditLogs: true, booking: { include: { offer: { include: { listing: true } } } } }, orderBy: { createdAt: 'desc' }, take: 200 }) : [],
+    needs('overview','offers') ? prisma.offer.findMany({ where: admin ? { listing: { district: districtFilter(district) } } : { OR: [{ listing: { partyId: p.id } }, { requirement: { partyId: p.id } }] }, include: offerInclude, orderBy: { createdAt: 'desc' }, take: 200 }) : [],
+    needs('overview','verification') ? prisma.verification.findMany({ where: admin ? { party: { district: districtFilter(district) } } : { partyId: p.id }, include: { party: { select: publicParty }, auditLogs: true }, orderBy: { createdAt: 'desc' }, take: 200 }) : [],
+    needs('disputes') || (admin&&needs('overview')) ? prisma.dispute.findMany({ where: admin ? { booking: { offer: { listing: { district: districtFilter(district) } } } } : { OR: [{ raisedByPartyId: p.id }, { respondentPartyId: p.id }] }, include: { auditLogs: true, booking: { include: { offer: { include: { listing: true } } } } }, orderBy: { createdAt: 'desc' }, take: 200 }) : [],
     admin && needs('analytics') ? prisma.portalSyncLog.findMany({ orderBy: { syncedAt: 'desc' }, take: 30 }) : [],
-    admin && needs('analytics') ? prisma.districtDailyStats.findMany({ where: { district }, orderBy: { date: 'desc' }, take: 100 }) : [],
+    admin && needs('analytics') ? prisma.districtDailyStats.findMany({ where: { district: districtFilter(district) }, orderBy: { date: 'desc' }, take: 100 }) : [],
     p.roles.includes('FPO_ADMIN') && needs('overview','members') ? prisma.party.findMany({ where: p.fpoId ? { fpoId: p.fpoId } : { id: p.id }, select: publicParty }) : [],
   ]);
   res.setHeader('Cache-Control','private, no-store');
@@ -335,10 +351,14 @@ router.post('/bookings/:id/rating', run(async (req, res) => {
     check(parties.includes(p.id), 403, 'Booking access denied');
     check(!b!.ratings.some(r => r.giverPartyId === p.id), 409, 'You have already rated this booking');
     return tx.rating.create({ data: { bookingId: b!.id, giverPartyId: p.id, receiverPartyId: parties.find(id => id && id !== p.id)!, ...input } });
-  }); res.status(201).json({ success: true, rating });
+  });
+  // Persist the visible buyer score in the same request. Previously the rating
+  // existed but the displayed TrustScore could remain stale until a later visit.
+  await recomputeTrustBatch(prisma, [rating.receiverPartyId]);
+  res.status(201).json({ success: true, rating });
 }));
 router.post('/bookings/:id/dispute', run(async (req, res) => {
-  const p = await actor(req); const input = z.object({ category: z.enum(['PAYMENT','QUALITY','LOGISTICS','STORAGE_DAMAGE','SERVICE_NOT_RENDERED','OTHER']), reason: z.string().min(10).max(3000), evidenceUrls: z.array(publicUrl).max(5).default([]) }).parse(req.body);
+  const p = await actor(req); const input = z.object({ category: z.enum(['PAYMENT','QUALITY','LOGISTICS','STORAGE_DAMAGE','SERVICE_NOT_RENDERED','OTHER']), reason: z.string().min(10).max(3000), evidenceUrls: z.array(evidenceUrl).max(5).default([]) }).parse(req.body);
   const b = await prisma.booking.findUnique({ where: { id: String(req.params.id) }, include: { offer: { include: { listing: true, requirement: true } }, dispute: true } });
   check(b, 404, 'Booking not found'); const ids = [b!.offer.listing.partyId, b!.offer.requirement?.partyId];
   check(ids.includes(p.id), 403, 'Booking access denied'); check(!b!.dispute, 409, 'A dispute already exists');
@@ -348,6 +368,27 @@ router.post('/bookings/:id/dispute', run(async (req, res) => {
     await notifyParties(tx,ids,`dispute:${created.id}:OPEN`,'DISPUTE',{reference:created.id,status:'OPEN'});return created;
   });
   res.status(201).json({ success: true, dispute });
+}));
+router.post('/bookings/:id/dispute-evidence',raw({type:['image/png','image/jpeg','application/pdf'],limit:MAX_DOCUMENT_BYTES}),run(async(req,res)=>{
+ const p=await actor(req),bookingId=z.string().uuid().parse(req.params.id),b=await prisma.booking.findUnique({where:{id:bookingId},include:{offer:{include:{listing:true,requirement:true}}}});
+ check(b&&[b.offer.listing.partyId,b.offer.requirement?.partyId].includes(p.id),403,'Booking access denied');
+ const mime=(req.get('content-type')||'').split(';')[0],extension=documentExtension(req.body,mime);check(extension,400,'Choose a PNG, JPEG or PDF file up to 2 MB.');
+ const requestId=z.string().uuid().parse(req.get('x-request-id'));const digest=createHash('sha256').update(`${p.id}:dispute:${bookingId}:${requestId}`).digest('hex');const id=`${digest.slice(0,8)}-${digest.slice(8,12)}-4${digest.slice(13,16)}-a${digest.slice(17,20)}-${digest.slice(20,32)}`;
+ const path=`${p.id}/${id}-${createHash('sha256').update(req.body).digest('hex')}.${extension}`;await uploadDocument(path,req.body,mime);res.status(201).json({success:true,evidenceUrl:`storage://${DOCUMENT_BUCKET}/${path}`});
+}));
+// Evidence is private: only trade participants and the responsible district/state office can read it.
+router.get('/disputes/:id/evidence/:index',run(async(req,res)=>{
+ const p=await actor(req),id=z.string().uuid().parse(req.params.id),index=z.coerce.number().int().min(0).max(4).parse(req.params.index);
+ const dispute=await prisma.dispute.findUnique({where:{id},include:{booking:{include:{offer:{include:{listing:true,requirement:true}}}}}});
+ check(dispute,404,'Dispute not found');
+ const listing=dispute!.booking.offer.listing;
+ const participant=[listing.partyId,dispute!.booking.offer.requirement?.partyId].includes(p.id);
+ const responsibleAdmin=isAdmin(p)&&(isState(p)||sameDistrict(listing.district,p.district));
+ check(participant||responsibleAdmin,403,'Evidence is outside your workspace scope');
+ const reference=dispute!.evidenceUrls[index];check(reference,404,'Evidence file not found');
+ const path=storageObjectPath(reference,dispute!.raisedByPartyId);check(path,404,'This evidence is not a private upload');
+ const file=await downloadDocument(path!);const extension=file.mime==='application/pdf'?'pdf':file.mime==='image/png'?'png':'jpg';
+ res.setHeader('Cache-Control','private, no-store');res.setHeader('Content-Type',file.mime);res.setHeader('Content-Disposition',`inline; filename="dispute-evidence-${index+1}.${extension}"`);res.send(file.buffer);
 }));
 router.post('/verification-upload', raw({type:['image/png','image/jpeg','application/pdf'],limit:MAX_DOCUMENT_BYTES}), run(async(req,res)=>{
   const p=await actor(req);
@@ -397,7 +438,7 @@ router.post('/review/:kind/:id', run(async (req, res) => {
     if (req.params.kind === 'verification') {
       check(['APPROVE','REJECT','ESCALATE','REQUEST_MORE_INFO'].includes(input.action), 400, 'Invalid verification action');
       const v = await tx.verification.findUnique({ where: { id }, include: { party: true } });
-      check(v && (isState(p) || v.party.district === p.district), 403, 'Outside your administrative scope');
+      check(v && (isState(p) || sameDistrict(v.party.district, p.district)), 403, 'Outside your administrative scope');
       check(['PENDING','ESCALATED'].includes(v!.status), 409, 'This review has already been closed');
       check(v!.status !== 'ESCALATED' || isState(p), 403, 'Escalated cases require state review');
       const status = ({ APPROVE: 'APPROVED', REJECT: 'REJECTED', ESCALATE: 'ESCALATED', REQUEST_MORE_INFO: 'PENDING' } as const)[input.action as 'APPROVE'];
@@ -406,7 +447,7 @@ router.post('/review/:kind/:id', run(async (req, res) => {
     }
     check(req.params.kind === 'dispute' && input.action !== 'APPROVE', 400, 'Invalid dispute action');
     const d = await tx.dispute.findUnique({ where: { id }, include: { booking: { include: { offer: { include: { listing: true } } } } } });
-    check(d && (isState(p) || d.booking.offer.listing.district === p.district), 403, 'Outside your administrative scope');
+    check(d && (isState(p) || sameDistrict(d.booking.offer.listing.district, p.district)), 403, 'Outside your administrative scope');
     check(!['RESOLVED','REJECTED'].includes(d!.status), 409, 'This dispute is already closed');
     check(!['ESCALATED','UNDER_STATE_REVIEW'].includes(d!.status) || isState(p), 403, 'Escalated cases require state review');
     const status = ({ RESOLVE: 'RESOLVED', REJECT: 'REJECTED', ESCALATE: 'ESCALATED', REQUEST_MORE_INFO: isState(p) ? 'UNDER_STATE_REVIEW' : 'UNDER_DISTRICT_REVIEW' } as const)[input.action as 'RESOLVE'];

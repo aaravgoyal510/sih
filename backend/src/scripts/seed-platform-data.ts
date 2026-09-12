@@ -168,7 +168,7 @@ export async function purgeAndSeedDatabase() {
   // 5) Admins
   const distAdminUser = await prisma.user.create({ data: { phone: '+919900011111' } });
   const distAdmin = await prisma.party.create({
-    data: { userId: distAdminUser.id, name: 'Shri. V. K. Patil (District Admin Nashik)', district: 'Nashik', roles: [PartyRole.DISTRICT_ADMIN] },
+    data: { userId: distAdminUser.id, name: 'Shri. V. K. Patil (District Admin Pune)', district: 'Pune', roles: [PartyRole.DISTRICT_ADMIN] },
   });
 
   const stateAdminUser = await prisma.user.create({ data: { phone: '+919900099999' } });

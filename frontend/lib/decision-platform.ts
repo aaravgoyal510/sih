@@ -20,6 +20,8 @@ export type TrustScore = {
   suspended: boolean;
   asOf: string;
   formulaVersion: string;
+  /** Local = nearby trader/mandi agent; Bulk = FPO, processor or exporter. */
+  buyerType?: 'LOCAL' | 'BULK' | null;
 };
 
 export type WaitScenario =
@@ -34,7 +36,7 @@ export type Recommendation = {
   createdAt: string;
   validUntil: string;
   explanationVersion: string;
-  what: { action: string; counterpartyName?:string; quantityKg: number; timing: string };
+  what: { action: string; counterpartyName?:string; buyerType?: 'LOCAL' | 'BULK' | null; quantityKg: number; timing: string };
   why: {
     expectedNetPaise: number; baselineNetPaise: number|null; deltaPaise: number|null;
     baselineLabel: string; grossPaise: number;
@@ -59,7 +61,7 @@ export function signedPaise(value: number): string {
 }
 
 export const buyerTrustFixture: TrustScore = {
-  partyId: 'fixture-xyz-buyer', role: 'BUYER', score: 87, tier: 'HIGH_TRUST',
+  partyId: 'fixture-ramesh-local-buyer', role: 'BUYER', buyerType:'LOCAL', score: 87, tier: 'HIGH_TRUST',
   kycVerified: true, totalTransactions: 47, eligibleOrders: 49,
   onTimePayments: 48, eligiblePayments: 50, onTimePaymentPct: 96,
   onTimeFulfillmentPct: null, disputesCount: 1, confirmedAtFaultDisputes: 1,
@@ -69,10 +71,10 @@ export const buyerTrustFixture: TrustScore = {
 };
 
 export const recommendationFixture: Recommendation = {
-  id: 'fixture-sell-xyz', synthetic: true,
+  id: 'fixture-sell-ramesh-local', synthetic: true,
   createdAt: '2026-09-12T06:00:00.000Z', validUntil: '2026-09-12T12:00:00.000Z',
   explanationVersion: 'net-v1-proposed',
-  what: { action: 'Sell to XYZ buyer', quantityKg: 1000, timing: 'Sell now' },
+  what: { action: 'Sell to Local Buyer — Ramesh Traders', buyerType:'LOCAL', quantityKg: 1000, timing: 'Sell now' },
   why: {
     expectedNetPaise: 2585000, baselineNetPaise: 2300000, deltaPaise: 285000,
     baselineLabel: 'Feasible local sell-now option, same 1,000 kg lot',

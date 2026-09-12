@@ -31,6 +31,10 @@ These events also support realized-net measurement. Merely marking a simulated b
 
 ## 5. Trust migration and retention
 
+## 5.1 Buyer classification
+
+`Party.buyerType` is an additive nullable `BuyerType` enum: `LOCAL` for a nearby trader/mandi agent buying smaller lots, and `BULK` for an FPO, processor or exporter buying larger lots with grading, contract and delivery requirements. It is a purchasing-pattern label, not a replacement for the `BUYER` authorization role. Existing buyers remain unclassified until an authorized profile review; no historical offer, trust or KYC record is inferred from it.
+
 Keep CredibilityScore and its current enforcement until approved shadow calculation and policy cutover. Do not fabricate historical due times, KYC or payment percentages. Backfill only auditable fields; missing evidence gives a provisional score. Record denominators and formula version; the 87 fixture's one dispute is explicitly confirmed at fault.
 
 Apply one penalty per upheld decision, with auditable reversal on appeal. PRD.md specifies proposed score weights/tier/suspension behavior; the existing lifetime three-dispute threshold requires a lookback/reinstatement decision.

@@ -9,6 +9,8 @@ import {
   Package,
   ClipboardCheck,
   WifiOff,
+  BarChart3,
+  X,
 } from "lucide-react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { copy, cropNames } from "../../lib/assist-copy";
@@ -16,6 +18,7 @@ import { parseVoiceListing } from "../../lib/voice-listing";
 import { request, money, ApiError } from "../../lib/workspace";
 import VoiceInput, { ReadAloud } from "./VoiceControls";
 import CropIcon from "./CropIcon";
+import { API_URL } from '../../lib/api-config';
 
 const empty = {
   crop: "",
@@ -37,6 +40,11 @@ export default function GuidedSell() {
     [offline, setOffline] = useState(false),
     [busy, setBusy] = useState(false),
     [saved, setSaved] = useState<string | null>(null),
+    [pricePopup,setPricePopup]=useState(false),
+    [nearbyPrices,setNearbyPrices]=useState<any[]>([]),
+    [priceFeed,setPriceFeed]=useState<any>(null),
+    [pricesLoading,setPricesLoading]=useState(false),
+    [pricesError,setPricesError]=useState(''),
     [ready, setReady] = useState(false);
   const requestId = useRef(""),
     lock = useRef(false),
@@ -95,6 +103,12 @@ export default function GuidedSell() {
     }
     setDraft((v) => ({ ...v, [key]: value }));
   };
+  async function openPricePopup(forceRefresh=true){
+    setPricePopup(true);setPricesError('');setNearbyPrices([]);
+    if(!draft.crop||draft.district.trim().length<2){setPricesError('Pehle fasal aur zila bharein.');return;}
+    setPricesLoading(true);
+    try{const response=await fetch(`${API_URL}/api/mandi-prices?limit=20&crop=${encodeURIComponent(draft.crop)}&district=${encodeURIComponent(draft.district.trim())}${forceRefresh?'&refresh=1':''}`,{cache:'no-store',signal:AbortSignal.timeout(75000)}),data=await response.json().catch(()=>null);if(!response.ok||!data?.success||data.source!=='AGMARKNET_LIVE')throw new Error('Sarkari mandi ke live daam abhi nahi mil paaye.');setPriceFeed(data);setNearbyPrices(Array.isArray(data.prices)?data.prices.map((price:any)=>data.fallbackDistrict?{...price,market:`${price.market} (${price.district})`}:price):[]);}catch(e:any){setPricesError(e.message||'Daam abhi nahi mil paaye.');}finally{setPricesLoading(false);}
+  }
   function capture(text: string) {
     setPhrase(text);
     const found = parseVoiceListing(text);
@@ -419,9 +433,10 @@ export default function GuidedSell() {
                 onChange={(e) => update("price", e.target.value)}
               />
             </label>
-            <Link href="/farmer/prices" target="_blank">
+            <a href="#" className="ks-link" onClick={(event)=>{event.preventDefault();void openPricePopup();}}>
+              <BarChart3 size={17}/>
               {c("Compare prices")} ↗
-            </Link>
+            </a>
           </div>
         )}
         {step === 2 && (
@@ -482,6 +497,7 @@ export default function GuidedSell() {
         </div>
         <p className="ks-subtitle">{c("Saved on this device as a draft.")}</p>
       </section>
+      {pricePopup&&<div className="ks-modal-backdrop" role="presentation" onMouseDown={()=>setPricePopup(false)}><section className="ks-modal" role="dialog" aria-modal="true" aria-labelledby="nearby-price-title" onMouseDown={e=>e.stopPropagation()}><header className="ks-section-heading"><div><p className="ks-eyebrow">Aas paas ke daam</p><h2 id="nearby-price-title">Price Compare</h2></div><button className="ks-icon-button" aria-label="Band Karein" onClick={()=>setPricePopup(false)}><X size={20}/></button></header><p className="ks-subtitle">{draft.crop} · {draft.district}. Mandi ke daam sirf jaankari ke liye hain; yeh pakka khareedar ka daam nahi hai.</p>{pricesLoading?<p className="ks-loading">Daam dekh rahe hain…</p>:pricesError?<p className="ks-alert error">{pricesError}</p>:nearbyPrices.length?<dl className="ks-review-details">{nearbyPrices.map((price:any)=><div key={price.id}><dt>{price.market}</dt><dd><strong>{money(Number(price.pricePerKg))}/kg</strong><small>Mandi daam · {new Date(price.recordedAt).toLocaleDateString('en-IN')}</small><button type="button" className="ks-button secondary" onClick={()=>{update('price',String(price.pricePerKg));setPricePopup(false);}}>Use this price</button></dd></div>)}</dl>:<p className="ks-note">Is fasal ke liye is zila mein abhi koi mandi daam nahi mila. Apna daam bhar sakte hain.</p>}<button type="button" className="ks-button secondary full" onClick={()=>setPricePopup(false)}>Band Karein</button></section></div>}
     </div>
   );
 }

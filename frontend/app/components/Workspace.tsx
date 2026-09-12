@@ -8,9 +8,11 @@ import RoleOverview, { roleWork } from "./RoleOverview";
 import SimpleAgreement from "./SimpleAgreement";
 import FpoMembership from "./FpoMembership";
 import LogisticsNote from "./LogisticsNote";
+import LivePriceAssist from './LivePriceAssist';
 import {VerificationDocument,VerificationForm} from './VerificationDocument';
 import {useLanguage} from '../../lib/LanguageContext';
 import {copy} from '../../lib/assist-copy';
+import {API_URL} from '../../lib/api-config';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -155,6 +157,9 @@ export default function Workspace({
   const [modal, setModal] = useState<Modal>(null);
   const [selection, setSelection] = useState<string[]>([]);
   const [crop, setCrop] = useState("Onion");
+  const [listingCrop,setListingCrop]=useState('Onion');
+  const [listingDistrict,setListingDistrict]=useState('');
+  const [listingPrice,setListingPrice]=useState('20');
   useEffect(() => {
     if (!modal) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -278,6 +283,31 @@ export default function Workspace({
       setBusy(false);
     }
   }
+  async function openDisputeEvidence(disputeId: string, index: number) {
+    setError("");
+    try {
+      const token = localStorage.getItem("maha_token");
+      const response = await fetch(
+        `${API_URL}/api/workspace/disputes/${disputeId}/evidence/${index}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {}, signal: AbortSignal.timeout(30000) },
+      );
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || "Evidence could not be opened.");
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const opened = window.open(url, "_blank", "noopener,noreferrer");
+      if (!opened) {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "dispute-evidence";
+        link.click();
+      }
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e: any) {
+      setError(e.message || "Evidence could not be opened.");
+    }
+  }
   if (loading)
     return (
       <div className="ks-loading">
@@ -327,6 +357,7 @@ export default function Workspace({
   const fpo = p.roles.includes("FPO_ADMIN");
   const buyer = p.roles.includes("BUYER");
   const farmer = p.roles.includes("FARMER");
+  const cropPriceListing=kind==='listing'&&['CROP_LOT','CONTRACT_FARMING'].includes(type);
   const myListings = data.listings.filter((l: any) => l.partyId === p.id);
   const myRequirements = data.requirements.filter(
     (r: any) => r.partyId === p.id,
@@ -435,16 +466,25 @@ export default function Workspace({
         "Counter-offer sent to the buyer.",
       );
     if (modal.kind === "dispute")
+      {
+      const file=f.get('evidenceFile') as File|null;let evidenceUrls:string[]=[];
+      if(file?.size){
+        if(file.size>2*1024*1024||!['image/png','image/jpeg','application/pdf'].includes(file.type)){setError('Upload a PNG, JPEG or PDF file up to 2 MB.');return;}
+        const token=localStorage.getItem('maha_token'),response=await fetch(`${API_URL}/api/workspace/bookings/${item.id}/dispute-evidence`,{method:'POST',headers:{'Content-Type':file.type,'x-request-id':crypto.randomUUID(),...(token?{Authorization:`Bearer ${token}`}:{})},body:file,signal:AbortSignal.timeout(90000)}),uploaded=await response.json().catch(()=>null);
+        if(!response.ok||!uploaded?.success){setError(uploaded?.error||'Photo upload nahi ho paaya. Dobara try karein.');return;}
+        evidenceUrls=[uploaded.evidenceUrl];
+      }
       await mutate(
         `/bookings/${item.id}/dispute`,
         "POST",
         {
           category: f.get("category"),
           reason: f.get("reason"),
-          evidenceUrls: f.get("evidence") ? [String(f.get("evidence"))] : [],
+          evidenceUrls,
         },
         "Dispute submitted to district review.",
       );
+      }
     if (modal.kind === "rating")
       await mutate(
         `/bookings/${item.id}/rating`,
@@ -866,7 +906,7 @@ export default function Workspace({
                       <input
                         name={f.key}
                         type={f.type || "text"}
-                        defaultValue={f.value}
+                        {...(cropPriceListing&&f.key==='crop'?{value:listingCrop,onChange:(e)=>setListingCrop(e.target.value)}:{defaultValue:f.value})}
                         min={f.type === "number" ? 1 : undefined}
                         step={f.type === "number" ? "any" : undefined}
                         required
@@ -878,7 +918,8 @@ export default function Workspace({
                   {c('District')}
                   <input
                     name="district"
-                    defaultValue={p.district}
+                    value={listingDistrict||p.district}
+                    onChange={(e)=>setListingDistrict(e.target.value)}
                     required
                     minLength={2}
                   />
@@ -890,7 +931,7 @@ export default function Workspace({
                     type="number"
                     min="0.01"
                     step="0.01"
-                    defaultValue={20}
+                    {...(cropPriceListing?{value:listingPrice,onChange:(e)=>setListingPrice(e.target.value)}:{defaultValue:20})}
                     required
                   />
                 </label>
@@ -928,6 +969,7 @@ export default function Workspace({
                   </label>
                 )}
               </div>
+              {cropPriceListing && <LivePriceAssist crop={listingCrop} district={listingDistrict || p.district} onUsePrice={(price) => setListingPrice(String(price))} />}
               <button disabled={busy} className="ks-button full">
                 {c(busy
                   ? "Saving…"
@@ -1197,6 +1239,21 @@ export default function Workspace({
                       </div>
                     <LogisticsNote booking={b} readOnly={admin} onSaved={booking=>setData((d:any)=>({...d,offers:d.offers.map((item:any)=>item.id===o.id?{...item,booking:{...item.booking,...booking}}:item)}))}/>
                       {b.dispute && (
+                        <div className="ks-note ks-dispute-note">
+                          <div className="ks-section-heading">
+                            <strong>Complaint raised</strong>
+                            <Badge good={b.dispute.status === "RESOLVED"}>{label(b.dispute.status)}</Badge>
+                          </div>
+                          <p><strong>What happened:</strong> {b.dispute.reason}</p>
+                          <small>This complaint is sent to the {o.listing.district} District Office.</small>
+                          {b.dispute.evidenceUrls?.length > 0 && (
+                            <button className="ks-link" type="button" onClick={() => openDisputeEvidence(b.dispute.id, 0)}>
+                              <FileText size={15} /> View attached photo / document
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {b.dispute && (
                         <div className="ks-note">
                           Dispute: {label(b.dispute.status)} —{" "}
                           {b.dispute.reason}
@@ -1315,6 +1372,11 @@ export default function Workspace({
               {d.resolutionNote && (
                 <p className="ks-note">{d.resolutionNote}</p>
               )}
+              {d.evidenceUrls?.length > 0 && (
+                <button className="ks-link" type="button" onClick={() => openDisputeEvidence(d.id, 0)}>
+                  <FileText size={15} /> View attached photo / document
+                </button>
+              )}
               {admin && !["RESOLVED", "REJECTED"].includes(d.status) && (
                 <button
                   className="ks-button secondary"
@@ -1338,7 +1400,7 @@ export default function Workspace({
           {!data.disputes.length && (
             <Empty
               title="No disputes in your queue"
-              detail="Cases are routed according to the booking district."
+              detail={admin ? `This office sees only bookings from ${p.district}.` : "Your complaints and their updates appear here."}
             />
           )}
         </section>
@@ -1608,9 +1670,10 @@ export default function Workspace({
                       />
                     </label>
                     <label>
-                      Evidence URL (optional)
-                      <input name="evidence" type="url" />
+                      Photo or document (optional)
+                      <input name="evidenceFile" type="file" accept="image/png,image/jpeg,application/pdf" />
                     </label>
+                    <p className="ks-note">Photo (PNG/JPEG) ya PDF upload karein, maximum 2 MB. Yeh sirf shikayat dekhne wale adhikari dekh sakte hain.</p>
                   </>
                 )}
                 {modal.kind === "cancel" && (
