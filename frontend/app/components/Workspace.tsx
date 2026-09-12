@@ -8,6 +8,7 @@ import RoleOverview, { roleWork } from "./RoleOverview";
 import SimpleAgreement from "./SimpleAgreement";
 import FpoMembership from "./FpoMembership";
 import LogisticsNote from "./LogisticsNote";
+import LivePriceAssist from './LivePriceAssist';
 import {VerificationDocument,VerificationForm} from './VerificationDocument';
 import {useLanguage} from '../../lib/LanguageContext';
 import {copy} from '../../lib/assist-copy';
@@ -155,6 +156,9 @@ export default function Workspace({
   const [modal, setModal] = useState<Modal>(null);
   const [selection, setSelection] = useState<string[]>([]);
   const [crop, setCrop] = useState("Onion");
+  const [listingCrop,setListingCrop]=useState('Onion');
+  const [listingDistrict,setListingDistrict]=useState('');
+  const [listingPrice,setListingPrice]=useState('20');
   useEffect(() => {
     if (!modal) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -327,6 +331,7 @@ export default function Workspace({
   const fpo = p.roles.includes("FPO_ADMIN");
   const buyer = p.roles.includes("BUYER");
   const farmer = p.roles.includes("FARMER");
+  const cropPriceListing=kind==='listing'&&['CROP_LOT','CONTRACT_FARMING'].includes(type);
   const myListings = data.listings.filter((l: any) => l.partyId === p.id);
   const myRequirements = data.requirements.filter(
     (r: any) => r.partyId === p.id,
@@ -866,7 +871,7 @@ export default function Workspace({
                       <input
                         name={f.key}
                         type={f.type || "text"}
-                        defaultValue={f.value}
+                        {...(cropPriceListing&&f.key==='crop'?{value:listingCrop,onChange:(e)=>setListingCrop(e.target.value)}:{defaultValue:f.value})}
                         min={f.type === "number" ? 1 : undefined}
                         step={f.type === "number" ? "any" : undefined}
                         required
@@ -878,7 +883,8 @@ export default function Workspace({
                   {c('District')}
                   <input
                     name="district"
-                    defaultValue={p.district}
+                    value={listingDistrict||p.district}
+                    onChange={(e)=>setListingDistrict(e.target.value)}
                     required
                     minLength={2}
                   />
@@ -890,7 +896,7 @@ export default function Workspace({
                     type="number"
                     min="0.01"
                     step="0.01"
-                    defaultValue={20}
+                    {...(cropPriceListing?{value:listingPrice,onChange:(e)=>setListingPrice(e.target.value)}:{defaultValue:20})}
                     required
                   />
                 </label>
@@ -928,6 +934,7 @@ export default function Workspace({
                   </label>
                 )}
               </div>
+              {cropPriceListing && <LivePriceAssist crop={listingCrop} district={listingDistrict || p.district} onUsePrice={(price) => setListingPrice(String(price))} />}
               <button disabled={busy} className="ks-button full">
                 {c(busy
                   ? "Saving…"

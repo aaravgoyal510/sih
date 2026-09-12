@@ -6,6 +6,7 @@ import { ShieldCheck } from 'lucide-react';
 import type { TrustScore } from '../../../lib/decision-platform';
 import styles from './decision.module.css';
 
+const buyerTypeLabel=(type:TrustScore['buyerType'])=>type==='LOCAL'?'Local Buyer':type==='BULK'?'Bulk Buyer':'Buyer type not recorded';
 export function TrustScoreBadge({ trust }: { trust: TrustScore }) {
   const {language}=useLanguage(),c=(s:string)=>copy(language,s);
   const tier = trust.suspended ? 'LOW_TRUST' : trust.tier;
@@ -16,7 +17,7 @@ export function TrustScoreBadge({ trust }: { trust: TrustScore }) {
   </span>;
 }
 
-export default function TrustScoreCard({ trust }: { trust: TrustScore }) {
+export default function TrustScoreCard({ trust,buyerName }: { trust: TrustScore;buyerName?:string }) {
   const {language}=useLanguage(),c=(s:string)=>copy(language,s);
   const buyer = trust.role === 'BUYER';
   const reliability = buyer ? trust.onTimePaymentPct : trust.onTimeFulfillmentPct;
@@ -29,7 +30,7 @@ export default function TrustScoreCard({ trust }: { trust: TrustScore }) {
     [buyer ? 'Farmer rating' : 'Buyer rating', trust.counterpartRating === null ? 'Not enough evidence' : `${trust.counterpartRating}/5`],
   ];
   return <section className={styles.trust} aria-label={`${buyer ? 'Buyer' : 'Farmer'} Trust Score`}>
-    <p className={styles.trustTitle}>{c(buyer ? 'Buyer Trust Score' : 'Farmer Trust Score')}</p>
+    <p className={styles.trustTitle}>{buyer&&<>{buyerName?`${buyerName} (${buyerTypeLabel(trust.buyerType)})`:`${buyerTypeLabel(trust.buyerType)}`} — </>}{c(buyer ? 'Buyer Trust Score' : 'Farmer Trust Score')}</p>
     <TrustScoreBadge trust={trust} />
     <dl className={styles.metrics}>{metrics.map(([label, value]) =>
       <div key={label}><dt>{c(label)}</dt><dd>{c(value)}</dd></div>)}</dl>

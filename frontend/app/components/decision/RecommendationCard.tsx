@@ -29,7 +29,7 @@ export default function RecommendationCard({ recommendation: r, trustSlot }: { r
           {r.why.costs.map(cost => <div key={cost.label}><dt>{c(cost.label)}</dt><dd>−{formatPaise(cost.amountPaise)}</dd></div>)}
         </dl><p>{c(r.why.basis)}</p>
       </details>
-      {r.buyerTrust ? <TrustScoreCard trust={r.buyerTrust} /> : trustSlot || <p className={styles.notice}>{c('Buyer trust: not enough evidence. Verify reliability before choosing.')}</p>}
+      {r.buyerTrust ? <TrustScoreCard trust={{...r.buyerTrust,buyerType:r.what.buyerType??r.buyerTrust.buyerType}} buyerName={r.what.counterpartyName} /> : trustSlot || <p className={styles.notice}>{c('Buyer trust: not enough evidence. Verify reliability before choosing.')}</p>}
     </section>
     <section className={styles.field} data-decision-field="RISK">
       <h2>{c('RISK')}</h2><p className={styles.risk}>{c(r.risk.level)}</p>
