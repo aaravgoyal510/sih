@@ -38,17 +38,53 @@ export async function purgeAndSeedDatabase() {
 
   // A. Seed MandiPrices (6 Districts: Nashik, Pune, Ahmednagar, Nagpur, Latur, Solapur; 5 Crops)
   const now = new Date();
+  const dayMs = 24 * 3600 * 1000;
   const mandiData = [
-    { crop: 'Onion', district: 'Nashik', market: 'Lasalgaon APMC', pricePerKg: 18.5, arrivalsKg: 45000 },
-    { crop: 'Onion', district: 'Ahmednagar', market: 'Rahuri APMC', pricePerKg: 17.2, arrivalsKg: 32000 },
-    { crop: 'Tomato', district: 'Nashik', market: 'Pimpalgaon APMC', pricePerKg: 14.0, arrivalsKg: 28000 },
-    { crop: 'Tomato', district: 'Pune', market: 'Narayangaon APMC', pricePerKg: 15.5, arrivalsKg: 35000 },
-    { crop: 'Soybean', district: 'Latur', market: 'Latur APMC Main', pricePerKg: 44.0, arrivalsKg: 85000 },
-    { crop: 'Soybean', district: 'Nagpur', market: 'Nagpur APMC', pricePerKg: 42.8, arrivalsKg: 62000 },
-    { crop: 'Grape', district: 'Nashik', market: 'Nashik Grape Yard', pricePerKg: 65.0, arrivalsKg: 20000 },
-    { crop: 'Grape', district: 'Solapur', market: 'Solapur APMC', pricePerKg: 58.0, arrivalsKg: 15000 },
-    { crop: 'Pomegranate', district: 'Solapur', market: 'Solapur Fruit Yard', pricePerKg: 95.0, arrivalsKg: 18000 },
-    { crop: 'Pomegranate', district: 'Nashik', market: 'Satana APMC', pricePerKg: 102.0, arrivalsKg: 12000 },
+    // Onion, Nashik (4 dates)
+    { crop: 'Onion', district: 'Nashik', market: 'Lasalgaon APMC', pricePerKg: 18.5, arrivalsKg: 45000, recordedAt: now },
+    { crop: 'Onion', district: 'Nashik', market: 'Lasalgaon APMC', pricePerKg: 19.2, arrivalsKg: 42000, recordedAt: new Date(now.getTime() - dayMs) },
+    { crop: 'Onion', district: 'Nashik', market: 'Lasalgaon APMC', pricePerKg: 18.0, arrivalsKg: 46000, recordedAt: new Date(now.getTime() - 2 * dayMs) },
+    { crop: 'Onion', district: 'Nashik', market: 'Lasalgaon APMC', pricePerKg: 17.5, arrivalsKg: 48000, recordedAt: new Date(now.getTime() - 3 * dayMs) },
+    { crop: 'Onion', district: 'Nashik', market: 'Pimpalgaon APMC', pricePerKg: 18.8, arrivalsKg: 35000, recordedAt: now },
+
+    // Onion, Ahmednagar
+    { crop: 'Onion', district: 'Ahmednagar', market: 'Rahuri APMC', pricePerKg: 17.2, arrivalsKg: 32000, recordedAt: now },
+    { crop: 'Onion', district: 'Ahmednagar', market: 'Rahuri APMC', pricePerKg: 17.8, arrivalsKg: 31000, recordedAt: new Date(now.getTime() - dayMs) },
+
+    // Tomato, Nashik
+    { crop: 'Tomato', district: 'Nashik', market: 'Pimpalgaon APMC', pricePerKg: 14.0, arrivalsKg: 28000, recordedAt: now },
+    { crop: 'Tomato', district: 'Nashik', market: 'Pimpalgaon APMC', pricePerKg: 14.8, arrivalsKg: 26000, recordedAt: new Date(now.getTime() - dayMs) },
+
+    // Tomato, Pune
+    { crop: 'Tomato', district: 'Pune', market: 'Narayangaon APMC', pricePerKg: 15.5, arrivalsKg: 35000, recordedAt: now },
+    { crop: 'Tomato', district: 'Pune', market: 'Narayangaon APMC', pricePerKg: 16.0, arrivalsKg: 33000, recordedAt: new Date(now.getTime() - dayMs) },
+
+    // Soybean, Latur
+    { crop: 'Soybean', district: 'Latur', market: 'Latur APMC Main', pricePerKg: 44.0, arrivalsKg: 85000, recordedAt: now },
+    { crop: 'Soybean', district: 'Latur', market: 'Latur APMC Main', pricePerKg: 44.5, arrivalsKg: 82000, recordedAt: new Date(now.getTime() - dayMs) },
+    { crop: 'Soybean', district: 'Latur', market: 'Latur APMC Main', pricePerKg: 43.8, arrivalsKg: 87000, recordedAt: new Date(now.getTime() - 2 * dayMs) },
+
+    // Soybean, Nagpur (4 dates)
+    { crop: 'Soybean', district: 'Nagpur', market: 'Nagpur APMC', pricePerKg: 42.8, arrivalsKg: 62000, recordedAt: now },
+    { crop: 'Soybean', district: 'Nagpur', market: 'Nagpur APMC', pricePerKg: 43.5, arrivalsKg: 60000, recordedAt: new Date(now.getTime() - dayMs) },
+    { crop: 'Soybean', district: 'Nagpur', market: 'Nagpur APMC', pricePerKg: 41.9, arrivalsKg: 65000, recordedAt: new Date(now.getTime() - 2 * dayMs) },
+    { crop: 'Soybean', district: 'Nagpur', market: 'Nagpur APMC', pricePerKg: 42.0, arrivalsKg: 63000, recordedAt: new Date(now.getTime() - 3 * dayMs) },
+
+    // Grape, Nashik
+    { crop: 'Grape', district: 'Nashik', market: 'Nashik Grape Yard', pricePerKg: 65.0, arrivalsKg: 20000, recordedAt: now },
+    { crop: 'Grape', district: 'Nashik', market: 'Nashik Grape Yard', pricePerKg: 66.5, arrivalsKg: 19000, recordedAt: new Date(now.getTime() - dayMs) },
+
+    // Grape, Solapur
+    { crop: 'Grape', district: 'Solapur', market: 'Solapur APMC', pricePerKg: 58.0, arrivalsKg: 15000, recordedAt: now },
+    { crop: 'Grape', district: 'Solapur', market: 'Solapur APMC', pricePerKg: 59.0, arrivalsKg: 14000, recordedAt: new Date(now.getTime() - dayMs) },
+
+    // Pomegranate, Solapur
+    { crop: 'Pomegranate', district: 'Solapur', market: 'Solapur Fruit Yard', pricePerKg: 95.0, arrivalsKg: 18000, recordedAt: now },
+    { crop: 'Pomegranate', district: 'Solapur', market: 'Solapur Fruit Yard', pricePerKg: 96.0, arrivalsKg: 17500, recordedAt: new Date(now.getTime() - dayMs) },
+
+    // Pomegranate, Nashik
+    { crop: 'Pomegranate', district: 'Nashik', market: 'Satana APMC', pricePerKg: 102.0, arrivalsKg: 12000, recordedAt: now },
+    { crop: 'Pomegranate', district: 'Nashik', market: 'Satana APMC', pricePerKg: 104.0, arrivalsKg: 11500, recordedAt: new Date(now.getTime() - dayMs) },
   ];
 
   for (const m of mandiData) {
@@ -60,7 +96,7 @@ export async function purgeAndSeedDatabase() {
         pricePerKg: m.pricePerKg,
         arrivalsKg: m.arrivalsKg,
         source: 'AGMARKNET',
-        recordedAt: now,
+        recordedAt: m.recordedAt || now,
       },
     });
   }
@@ -452,4 +488,8 @@ export async function purgeAndSeedDatabase() {
   console.log('\n================================================================');
   console.log('  SEEDING COMPLETE');
   console.log('================================================================');
+}
+
+if (require.main === module) {
+  purgeAndSeedDatabase().catch(console.error).finally(() => prisma.$disconnect());
 }

@@ -46,7 +46,7 @@ export class LiveMarketService {
 }
 export const liveMarket=new LiveMarketService({
   fetchFeed:fetchAgmarknet,now:Date.now,
-  read:()=>prisma.mandiPrice.findMany({where:{source:LIVE_SOURCE},orderBy:[{recordedAt:'desc'},{ingestedAt:'desc'}],take:5000}),
+  read:()=>prisma.mandiPrice.findMany({where:{source:{in:[LIVE_SOURCE,'AGMARKNET']}},orderBy:[{recordedAt:'desc'},{ingestedAt:'desc'}],take:5000}),
   save:prices=>prisma.mandiPrice.createMany({data:prices,skipDuplicates:true}),
   log:(status,message)=>prisma.portalSyncLog.create({data:{portal:'AGMARKNET',tier:1,status,message}}),
 });
