@@ -7,6 +7,8 @@ services:
     plan: free
     rootDir: backend
     buildCommand: npm ci --include=dev && npm run build
+    # Apply reviewed Prisma migrations before serving. This prevents code/schema
+    # drift such as a deployed Party field missing in Supabase (Prisma P2022).
     startCommand: npm start
     healthCheckPath: /health
     envVars:
