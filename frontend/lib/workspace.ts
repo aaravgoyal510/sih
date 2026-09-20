@@ -54,14 +54,25 @@ export async function launchProfile(profile: { id: string; roles: string[] }) {
   return destination(data.party.roles[0]);
 }
 
-export function destination(role: string) {
-  if (role === 'FARMER') return '/farmer/home';
-  if (role === 'BUYER') return '/buyer';
-  if (role === 'FPO_ADMIN') return '/fpo';
-  if (role === 'DISTRICT_ADMIN') return '/district-admin';
-  if (role === 'STATE_ADMIN') return '/state-admin';
-  if (role === 'PLATFORM_ADMIN') return '/platform-admin';
-  return `/provider?role=${role}`;
+export function destination(role: string, options?: { focus?: string; tab?: string }) {
+  let base = '/provider';
+  if (role === 'FARMER') base = '/farmer/home';
+  else if (role === 'BUYER') base = '/buyer';
+  else if (role === 'FPO_ADMIN') base = '/fpo';
+  else if (role === 'DISTRICT_ADMIN') base = '/district-admin';
+  else if (role === 'STATE_ADMIN') base = '/state-admin';
+  else if (role === 'PLATFORM_ADMIN') base = '/platform-admin';
+  else base = `/provider?role=${role}`;
+
+  if (options?.tab) {
+    const sep = base.includes('?') ? '&' : '?';
+    base = `${base}${sep}tab=${encodeURIComponent(options.tab)}`;
+  }
+  if (options?.focus) {
+    const sep = base.includes('?') ? '&' : '?';
+    base = `${base}${sep}focus=${encodeURIComponent(options.focus)}`;
+  }
+  return base;
 }
 
 export const resourceLabels: Record<string, string> = {

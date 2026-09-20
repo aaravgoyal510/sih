@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Receipt, RefreshCw, X, AlertTriangle, Truck, PackageCheck, Award } from 'lucide-react';
 import { request, money, ApiError } from '../../lib/workspace';
 import { useLanguage } from '../../lib/LanguageContext';
@@ -15,6 +16,8 @@ type Action = { offer: any; type: string } | null;
 export default function FarmerOffers() {
   const { t, language } = useLanguage();
   const c = (s: string) => copy(language, s);
+  const searchParams = useSearchParams();
+  const focusId = searchParams?.get('focus');
 
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');
@@ -45,6 +48,26 @@ export default function FarmerOffers() {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    const activeFocus = focusId || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('focus') : null);
+    if (!activeFocus || !data) return;
+    const timer = setTimeout(() => {
+      const target =
+        document.getElementById(`card-${activeFocus}`) ||
+        document.querySelector(`[data-item-id="${activeFocus}"]`) ||
+        document.querySelector(`[data-booking-id="${activeFocus}"]`);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('ks-highlight-focused');
+        const removeTimer = setTimeout(() => {
+          target.classList.remove('ks-highlight-focused');
+        }, 15000);
+        return () => clearTimeout(removeTimer);
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [data, focusId]);
 
   useEffect(() => {
     if (action) dialog.current?.showModal();
@@ -224,7 +247,14 @@ export default function FarmerOffers() {
           }
 
           return (
-            <article key={o.id} className="ks-panel" style={{ marginTop: 20, borderRadius: 14, padding: 22 }}>
+            <article
+              key={o.id}
+              id={`card-${o.id}`}
+              data-item-id={o.id}
+              data-booking-id={o.booking?.id}
+              className="ks-panel"
+              style={{ marginTop: 20, borderRadius: 14, padding: 22 }}
+            >
               <div className="ks-section-heading">
                 <div>
                   <p className="ks-eyebrow">

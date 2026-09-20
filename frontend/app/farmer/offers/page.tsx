@@ -1,4 +1,10 @@
+import { Suspense } from 'react';
 import FarmerOffers from '../../components/FarmerOffers';
+
 export default function Page() {
-  return <FarmerOffers />;
+  return (
+    <Suspense fallback={<div className="ks-loading">Loading…</div>}>
+      <FarmerOffers />
+    </Suspense>
+  );
 }

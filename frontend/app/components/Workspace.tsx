@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import DemandPanel from './DemandPanel';
 import RoleOverview, { roleWork } from './RoleOverview';
 import SimpleAgreement from './SimpleAgreement';
@@ -129,10 +129,18 @@ export default function Workspace({
   resourceFilter?: string;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const focusId = searchParams?.get('focus');
+  const tabParam = searchParams?.get('tab') as View | null;
+
   const { t, language } = useLanguage(),
     c = (s: string) => copy(language, s);
   const [data, setData] = useState<any>(null);
-  const [view, setView] = useState<View>(initialView);
+  const [view, setView] = useState<View>(
+    tabParam && ['overview', 'market', 'create', 'offers', 'verification', 'disputes', 'analytics', 'members'].includes(tabParam)
+      ? tabParam
+      : initialView
+  );
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -152,6 +160,41 @@ export default function Workspace({
   const [showInactiveDistricts, setShowInactiveDistricts] = useState(false);
   const [activeVerificationDrawer, setActiveVerificationDrawer] = useState<{ id: string; action: string; note: string } | null>(null);
   const [activeDisputeDrawer, setActiveDisputeDrawer] = useState<{ id: string; action: string; note: string } | null>(null);
+
+  useEffect(() => {
+    if (tabParam && ['overview', 'market', 'create', 'offers', 'verification', 'disputes', 'analytics', 'members'].includes(tabParam)) {
+      setView(tabParam);
+    }
+  }, [tabParam]);
+
+  useEffect(() => {
+    const activeFocus = focusId || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('focus') : null);
+    if (!activeFocus || !data) return;
+    // Switch view to match the focused item if needed
+    if (data.disputes?.some((d: any) => d.id === activeFocus || d.booking?.id === activeFocus || d.booking?.offerId === activeFocus)) {
+      if (view !== 'disputes') setView('disputes');
+    } else if (data.offers?.some((o: any) => o.id === activeFocus || o.booking?.id === activeFocus)) {
+      if (view !== 'offers') setView('offers');
+    } else if (data.verifications?.some((v: any) => v.id === activeFocus)) {
+      if (view !== 'verification') setView('verification');
+    }
+
+    const timer = setTimeout(() => {
+      const target =
+        document.getElementById(`card-${activeFocus}`) ||
+        document.querySelector(`[data-item-id="${activeFocus}"]`) ||
+        document.querySelector(`[data-booking-id="${activeFocus}"]`);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('ks-highlight-focused');
+        const removeTimer = setTimeout(() => {
+          target.classList.remove('ks-highlight-focused');
+        }, 15000);
+        return () => clearTimeout(removeTimer);
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [data, focusId, view]);
   useEffect(() => {
     if (!modal) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -976,7 +1019,13 @@ export default function Workspace({
               const canAccept =
                 (seller && o.status === 'PENDING') || (!seller && o.status === 'COUNTERED');
               return (
-                <article className="ks-panel" key={o.id}>
+                <article
+                  className="ks-panel"
+                  key={o.id}
+                  id={`card-${o.id}`}
+                  data-item-id={o.id}
+                  data-booking-id={o.booking?.id}
+                >
                   <div className="ks-section-heading">
                     <div>
                       <p className="ks-eyebrow">{resourceLabels[o.listing.resourceType]}</p>
@@ -1242,7 +1291,7 @@ export default function Workspace({
           <section className="ks-panel">
             <h2>{admin ? 'Verification review queue' : 'Your verification documents'}</h2>
             {data.verifications.map((v: any) => (
-              <div className="ks-review" key={v.id}>
+              <div className="ks-review" key={v.id} id={`card-${v.id}`} data-item-id={v.id}>
                 <div className="ks-section-heading">
                   <div>
                     <strong>{v.party.name}</strong>
@@ -1416,7 +1465,7 @@ export default function Workspace({
         <section className="ks-panel">
           <h2>Disputes & escalations</h2>
           {data.disputes.map((d: any) => (
-            <div className="ks-review" key={d.id}>
+            <div className="ks-review" key={d.id} id={`card-${d.id}`} data-item-id={d.id}>
               <div className="ks-section-heading">
                 <h3>{label(d.category)}</h3>
                 <Badge good={d.status === 'RESOLVED'}>{label(d.status)}</Badge>

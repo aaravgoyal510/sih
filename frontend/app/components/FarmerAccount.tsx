@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ShieldCheck, MessageSquare, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../../lib/LanguageContext';
 import { copy } from '../../lib/assist-copy';
@@ -9,15 +10,30 @@ import { ReadAloud } from './VoiceControls';
 import { VerificationDocument, VerificationForm } from './VerificationDocument';
 
 export default function FarmerAccount() {
+  const searchParams = useSearchParams();
+  const focusId = searchParams?.get('focus');
+  const tabParam = searchParams?.get('tab') as 'verification' | 'disputes' | null;
+
   const { language } = useLanguage(),
     c = (s: string) => copy(language, s);
-  const [tab, setTab] = useState<'verification' | 'disputes'>('verification'),
+  const [tab, setTab] = useState<'verification' | 'disputes'>(
+    tabParam && (tabParam === 'verification' || tabParam === 'disputes')
+      ? tabParam
+      : 'verification'
+  ),
     [data, setData] = useState<any>(null),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [notice, setNotice] = useState('');
   const sequence = useRef(0);
+
+  useEffect(() => {
+    if (tabParam && (tabParam === 'verification' || tabParam === 'disputes')) {
+      setTab(tabParam);
+    }
+  }, [tabParam]);
+
   async function load() {
     const ticket = ++sequence.current;
     setLoading(true);
@@ -43,6 +59,24 @@ export default function FarmerAccount() {
       sequence.current++;
     };
   }, [tab]);
+
+  useEffect(() => {
+    if (!focusId || !data) return;
+    const timer = setTimeout(() => {
+      const target =
+        document.getElementById(`card-${focusId}`) ||
+        document.querySelector(`[data-item-id="${focusId}"]`);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('ks-highlight-focused');
+        const removeTimer = setTimeout(() => {
+          target.classList.remove('ks-highlight-focused');
+        }, 15000);
+        return () => clearTimeout(removeTimer);
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [data, focusId]);
   const date = (value: string) =>
     new Date(value).toLocaleString(
       language === 'hi' ? 'hi-IN' : language === 'mr' ? 'mr-IN' : 'en-IN'
@@ -184,7 +218,7 @@ export default function FarmerAccount() {
               <p>{c('No complaints recorded.')}</p>
             ) : (
               data.disputes.map((d: any) => (
-                <article key={d.id} className="ks-update">
+                <article key={d.id} id={`card-${d.id}`} data-item-id={d.id} className="ks-update">
                   <span className="ks-badge">{c(label(d.status))}</span>
                   <p>{d.reason}</p>
                   {d.resolutionNote && <p className="ks-note">{d.resolutionNote}</p>}

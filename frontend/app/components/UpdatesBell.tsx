@@ -141,18 +141,31 @@ export default function UpdatesBell({ party }: { party: any }) {
                     language === 'hi' ? 'hi-IN' : language === 'mr' ? 'mr-IN' : 'en-IN'
                   )}
                 </small>
-                <Link
-                  href={
-                    party.roles.includes('FARMER')
-                      ? u.kind === 'TRADE'
-                        ? '/farmer/offers'
-                        : '/farmer/account'
-                      : destination(party.roles[0])
+                {(() => {
+                  const targetId = u.reference || u.offerId || u.bookingId || u.disputeId || u.verificationId || u.quoteId;
+                  let linkHref = destination(party.roles[0], {
+                    focus: targetId,
+                    tab: u.kind === 'DISPUTE' ? 'disputes' : u.kind === 'TRADE' ? 'offers' : u.kind === 'VERIFICATION' ? 'verification' : undefined,
+                  });
+
+                  if (party.roles.includes('FARMER')) {
+                    if (u.kind === 'TRADE') {
+                      linkHref = `/farmer/offers${targetId ? `?focus=${encodeURIComponent(targetId)}` : ''}`;
+                    } else if (u.kind === 'DISPUTE') {
+                      linkHref = `/farmer/account?tab=disputes${targetId ? `&focus=${encodeURIComponent(targetId)}` : ''}`;
+                    } else if (u.kind === 'VERIFICATION') {
+                      linkHref = `/farmer/account?tab=verification${targetId ? `&focus=${encodeURIComponent(targetId)}` : ''}`;
+                    } else {
+                      linkHref = `/farmer/home${targetId ? `?focus=${encodeURIComponent(targetId)}` : ''}`;
+                    }
                   }
-                  onClick={() => setOpen(false)}
-                >
-                  {c('Open workspace')}
-                </Link>
+
+                  return (
+                    <Link href={linkHref} onClick={() => setOpen(false)}>
+                      {c('Open workspace')}
+                    </Link>
+                  );
+                })()}
               </div>
             ))
           )}
