@@ -170,7 +170,7 @@ export const getDistrictAdminDisputeQueue = async (req: Request, res: Response):
  */
 export const reviewDispute = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { disputeId } = req.params;
+    const disputeId = req.params.disputeId as string;
     const { action, districtAdminPartyId, resolutionNote, atFaultPartyId } = req.body;
 
     if (!disputeId || !action || !districtAdminPartyId) {
@@ -205,8 +205,8 @@ export const reviewDispute = async (req: Request, res: Response): Promise<void> 
       },
     });
 
-    if (!dispute) {
-      res.status(404).json({ success: false, error: 'Dispute record not found' });
+    if (!dispute || !dispute.booking || !dispute.booking.offer || !dispute.booking.offer.listing) {
+      res.status(404).json({ success: false, error: 'Dispute record or associated booking/listing not found' });
       return;
     }
 

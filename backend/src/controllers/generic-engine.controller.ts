@@ -42,9 +42,9 @@ export const getListings = async (req: AuthenticatedRequest, res: Response): Pro
 
     const where: any = {};
     if (resourceType) where.resourceType = resourceType as ResourceType;
-    if (district) where.district = district as string;
+    if (district) where.district = String(district);
     if (status) where.status = status as ListingStatus;
-    if (partyId) where.partyId = partyId as string;
+    if (partyId) where.partyId = String(partyId);
 
     const listings = await prisma.listing.findMany({
       where,
@@ -67,7 +67,7 @@ export const getListings = async (req: AuthenticatedRequest, res: Response): Pro
 
 export const getListingById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const listing = await prisma.listing.findUnique({
       where: { id },
       include: {
@@ -190,7 +190,7 @@ export const createOffer = async (req: AuthenticatedRequest, res: Response): Pro
 
 export const updateOfferStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { status } = req.body;
 
     if (!status || !Object.values(OfferStatus).includes(status as OfferStatus)) {
@@ -245,7 +245,7 @@ export const updateOfferStatus = async (req: AuthenticatedRequest, res: Response
 
 export const getBookingById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const booking = await prisma.booking.findUnique({
       where: { id },

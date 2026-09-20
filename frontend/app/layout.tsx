@@ -7,7 +7,8 @@ import OfflineSupport from './components/OfflineSupport';
 
 export const metadata = {
   title: 'KrishiSetu — Better crop decisions, simpler trade',
-  description: 'Compare take-home value, connect with buyers and sell crops through a multilingual, voice-assisted experience.',
+  description:
+    'Compare take-home value, connect with buyers and sell crops through a multilingual, voice-assisted experience.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

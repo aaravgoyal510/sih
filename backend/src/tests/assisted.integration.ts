@@ -30,7 +30,6 @@ async function main(){try{
  const options=await call(`workspace/sell-options/${first.listing.id}`);assert.equal(options.listing.id,first.listing.id);assert.ok(options.options.every((o:any)=>o.buyer.id!==partyId));
  await call('bookings', 'GET',undefined,410);
  await call('listings', 'GET',undefined,410);
- await call('fasalrakshak/activity','POST',{partyId,crop:'Wheat',activityType:'SOWING',costAmount:1},410);
  await call('auth/request-otp','POST',{phone},503);
  const updates=await call('workspace/updates');assert.equal(updates.partyId,partyId);assert.deepEqual(updates.updates,[]);
  const saved=await prisma.user.findUnique({where:{phone}});assert.ok(saved?.passwordHash?.startsWith('scrypt:'));assert.notEqual(saved?.passwordHash,password);

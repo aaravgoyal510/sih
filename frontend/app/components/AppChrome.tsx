@@ -16,7 +16,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       {!isDemo && <BackendHealthBanner />}
       {!isDemo && <DemoRoleSwitcherHeader />}
       <main className={isDemo ? 'demo-main' : 'content-area'}>{children}</main>
-      <FarmerNavigation/>
+      <FarmerNavigation />
     </div>
   );
 }

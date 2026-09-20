@@ -31,10 +31,7 @@ export interface GuardResult {
   errorResponse?: NextResponse;
 }
 
-export function authorizeNextApiRoute(
-  req: NextRequest,
-  allowedRoles?: PartyRole[]
-): GuardResult {
+export function authorizeNextApiRoute(req: NextRequest, allowedRoles?: PartyRole[]): GuardResult {
   const authHeader = req.headers.get('authorization');
   const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
 

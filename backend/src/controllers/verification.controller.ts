@@ -135,7 +135,7 @@ export const getDistrictAdminQueue = async (req: Request, res: Response): Promis
  */
 export const reviewVerification = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { verificationId } = req.params;
+    const verificationId = req.params.verificationId as string;
     const { action, districtAdminPartyId, note } = req.body;
 
     if (!verificationId || !action || !districtAdminPartyId) {
@@ -147,7 +147,7 @@ export const reviewVerification = async (req: Request, res: Response): Promise<v
     }
 
     const adminParty = await prisma.party.findUnique({
-      where: { id: districtAdminPartyId },
+      where: { id: String(districtAdminPartyId) },
     });
 
     if (!adminParty || !adminParty.roles.includes(PartyRole.DISTRICT_ADMIN)) {
@@ -160,16 +160,18 @@ export const reviewVerification = async (req: Request, res: Response): Promise<v
       include: { party: true },
     });
 
-    if (!verification) {
+    if (!verification || !verification.party) {
       res.status(404).json({ success: false, error: 'Verification record not found' });
       return;
     }
 
+    const party = verification.party;
+
     // Enforce district boundary: Admin can only review verifications in their own district
-    if (verification.party.district !== adminParty.district) {
+    if (party.district !== adminParty.district) {
       res.status(403).json({
         success: false,
-        error: `District Admin (${adminParty.district}) cannot review verifications for party in ${verification.party.district}`,
+        error: `District Admin (${adminParty.district}) cannot review verifications for party in ${party.district}`,
       });
       return;
     }
@@ -204,11 +206,11 @@ export const reviewVerification = async (req: Request, res: Response): Promise<v
     });
 
     // If APPROVED, update Party roles to ensure verified role is assigned
-    if (newStatus === VerificationStatus.APPROVED && !verification.party.roles.includes(verification.role)) {
+    if (newStatus === VerificationStatus.APPROVED && !party.roles.includes(verification.role)) {
       await prisma.party.update({
         where: { id: verification.partyId },
         data: {
-          roles: [...verification.party.roles, verification.role],
+          roles: [...party.roles, verification.role],
         },
       });
     }

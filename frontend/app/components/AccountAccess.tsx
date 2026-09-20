@@ -1,17 +1,161 @@
 'use client';
-import React,{useRef,useState} from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
-import {useRouter} from 'next/navigation';
-import {ArrowRight,ShieldCheck} from 'lucide-react';
-import {API_URL} from '../../lib/api-config';
-import {destination} from '../../lib/workspace';
-import {useLanguage} from '../../lib/LanguageContext';
-import {copy} from '../../lib/assist-copy';
-export default function AccountAccess(){
- const {language}=useLanguage(),c=(s:string)=>copy(language,s),router=useRouter();const [register,setRegister]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');const lock=useRef(false);
- async function submit(event:React.FormEvent<HTMLFormElement>){event.preventDefault();if(lock.current)return;lock.current=true;setBusy(true);setError('');const f=new FormData(event.currentTarget);const raw=String(f.get('phone')).replace(/[\s-]/g,'');const phone=raw.startsWith('+91')?raw:'+91'+raw;
-  try{const response=await fetch(`${API_URL}/api/auth/${register?'register':'password-login'}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,password:f.get('password'),...(register?{name:f.get('name'),district:f.get('district'),role:f.get('role')}: {})}),signal:AbortSignal.timeout(75000)});const data=await response.json().catch(()=>null);if(!response.ok||!data?.success){setError(response.status===429?'Too many sign-in attempts. Try again in 15 minutes.':response.status===409?'An account already exists. Please sign in.':response.status===401?'Mobile number or password is incorrect.':'Check your details and try again.');return;}localStorage.setItem('maha_token',data.token);localStorage.setItem('maha_party',JSON.stringify(data.party));localStorage.removeItem('maha_demo_role');router.push(destination(data.party.roles[0]));}
-  catch{setError('Could not confirm the request. If registering, try signing in before registering again.');}finally{setBusy(false);lock.current=false;}
- }
- return <section className="ks-assisted ks-panel" style={{maxWidth:540}}><ShieldCheck size={38} color="#176448"/><h1>{c(register?'Create your account':'Sign in to continue')}</h1><p>{c('Your password protects your account. Your mobile number is not verified by this sign-in.')}</p><form className="ks-form" onSubmit={submit}>{register&&<><label>{c('Your name')}<input name="name" autoComplete="name" minLength={2} maxLength={100} required/></label><label>{c('District')}<input name="district" minLength={2} maxLength={100} required/></label><label>{c('I am a')}<select name="role">{[['FARMER','Farmer'],['BUYER','Buyer'],['STORAGE_OPERATOR','Storage'],['TRANSPORT_OPERATOR','Transport'],['EQUIPMENT_PROVIDER','Equipment'],['LABOR_CONTRACTOR','Labor'],['INPUT_SUPPLIER','Inputs']].map(([role,name])=><option value={role} key={role}>{c(name)}</option>)}</select></label></>}<label>{c('Mobile number')}<input name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="+91 9876543210" required/></label><label>{c('Password')}<input name="password" type="password" minLength={12} maxLength={128} autoComplete={register?'new-password':'current-password'} required/></label><p className="ks-subtitle">{c('Use at least 12 characters. Keep your password private.')}</p>{error&&<p className="ks-alert error" role="alert">{c(error)}</p>}<button className="ks-button full" disabled={busy}>{c(busy?'Saving…':register?'Create your account':'Sign in')}<ArrowRight size={18}/></button></form><button className="ks-button secondary" disabled={busy} onClick={()=>{setRegister(!register);setError('');}}>{c(register?'Already have an account? Sign in':'New here? Create an account')}</button><Link href="/demo">{c('Try the demonstration instead')}</Link></section>;
+import { useRouter } from 'next/navigation';
+import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { API_URL } from '../../lib/api-config';
+import { destination } from '../../lib/workspace';
+import { useLanguage } from '../../lib/LanguageContext';
+import { copy } from '../../lib/assist-copy';
+export default function AccountAccess() {
+  const { language } = useLanguage(),
+    c = (s: string) => copy(language, s),
+    router = useRouter();
+  const [register, setRegister] = useState(false),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  const lock = useRef(false);
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (lock.current) return;
+    lock.current = true;
+    setBusy(true);
+    setError('');
+    const formEl = event.currentTarget;
+    const f = new FormData(formEl);
+    const raw = String(f.get('phone') || '').replace(/[\s-]/g, '');
+    const phone = raw.startsWith('+91') ? raw : '+91' + raw;
+    const password = String(f.get('password') || '');
+    const name = String(f.get('name') || '');
+    const district = String(f.get('district') || '');
+    const role = String(f.get('role') || 'FARMER');
+    try {
+      const response = await fetch(
+        `${API_URL}/api/auth/${register ? 'register' : 'password-login'}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone,
+            password,
+            ...(register ? { name, district, role } : {}),
+          }),
+          signal: AbortSignal.timeout(75000),
+        }
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        setError(
+          data?.error ||
+          (response.status === 429
+            ? 'Too many sign-in attempts. Try again in 15 minutes.'
+            : response.status === 409
+              ? 'An account already exists. Please sign in.'
+              : response.status === 401
+                ? 'Mobile number or password is incorrect.'
+                : 'Check your details and try again.')
+        );
+        return;
+      }
+      localStorage.setItem('maha_token', data.token);
+      localStorage.setItem('maha_party', JSON.stringify(data.party));
+      localStorage.removeItem('maha_demo_role');
+      window.location.href = destination(data.party.roles[0]);
+    } catch (e: any) {
+      setError(
+        e?.message || 'Could not confirm the request. Check connection and try signing in again.'
+      );
+    } finally {
+      setBusy(false);
+      lock.current = false;
+    }
+  }
+  return (
+    <section className="ks-assisted ks-panel" style={{ maxWidth: 540 }}>
+      <ShieldCheck size={38} color="#176448" />
+      <h1>{c(register ? 'Create your account' : 'Sign in to continue')}</h1>
+      <p>
+        {c(
+          'Your password protects your account. Your mobile number is not verified by this sign-in.'
+        )}
+      </p>
+      <form className="ks-form" action="#" method="post" onSubmit={submit}>
+        {register && (
+          <>
+            <label>
+              {c('Your name')}
+              <input name="name" autoComplete="name" minLength={2} maxLength={100} required />
+            </label>
+            <label>
+              {c('District')}
+              <input name="district" minLength={2} maxLength={100} required />
+            </label>
+            <label>
+              {c('I am a')}
+              <select name="role">
+                {[
+                  ['FARMER', 'Farmer'],
+                  ['BUYER', 'Buyer'],
+                  ['STORAGE_OPERATOR', 'Storage'],
+                  ['TRANSPORT_OPERATOR', 'Transport'],
+                  ['EQUIPMENT_PROVIDER', 'Equipment'],
+                  ['LABOR_CONTRACTOR', 'Labor'],
+                  ['INPUT_SUPPLIER', 'Inputs'],
+                ].map(([role, name]) => (
+                  <option value={role} key={role}>
+                    {c(name)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
+        <label>
+          {c('Mobile number')}
+          <input
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="+91 9876543210"
+            required
+          />
+        </label>
+        <label>
+          {c('Password')}
+          <input
+            name="password"
+            type="password"
+            minLength={12}
+            maxLength={128}
+            autoComplete={register ? 'new-password' : 'current-password'}
+            required
+          />
+        </label>
+        <p className="ks-subtitle">
+          {c('Use at least 12 characters. Keep your password private.')}
+        </p>
+        {error && (
+          <p className="ks-alert error" role="alert">
+            {c(error)}
+          </p>
+        )}
+        <button type="submit" className="ks-button full" disabled={busy}>
+          {c(busy ? 'Saving…' : register ? 'Create your account' : 'Sign in')}
+          <ArrowRight size={18} />
+        </button>
+      </form>
+      <button
+        type="button"
+        className="ks-button secondary"
+        disabled={busy}
+        onClick={() => {
+          setRegister(!register);
+          setError('');
+        }}
+      >
+        {c(register ? 'Already have an account? Sign in' : 'New here? Create an account')}
+      </button>
+    </section>
+  );
 }

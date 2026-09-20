@@ -12,6 +12,7 @@ export interface TokenPayload {
   phone: string;
   roles: string[];
   district?: string;
+  isJudgeSession?: boolean;
 }
 
 export const signToken = (payload: TokenPayload): string => {

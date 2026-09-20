@@ -4,7 +4,7 @@ import { matchingEngine } from '../matching/matching-engine';
 
 export const getMatchesForRequirement = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { requirementId } = req.params;
+    const requirementId = req.params.requirementId as string;
 
     const requirement = await prisma.requirement.findUnique({
       where: { id: requirementId },

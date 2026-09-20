@@ -70,6 +70,68 @@ router.post('/demo-session', run(async (req, res) => {
   res.json({ success: true, token, party: profile });
 }));
 router.use(authenticateToken);
+
+// Phone normalization helper ensuring consistent +91 format comparison
+export function normalizePhone(rawPhone?: string | null): string {
+  if (!rawPhone) return '';
+  const digitsOnly = rawPhone.replace(/\D/g, '');
+  if (digitsOnly.length === 10) {
+    return `+91${digitsOnly}`;
+  }
+  if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
+    return `+${digitsOnly}`;
+  }
+  return rawPhone.trim();
+}
+
+// Hidden judge evaluation access control (fails closed if JUDGE_ACCESS_NUMBER is missing)
+const getJudgePhone = (): string => {
+  const envNum = process.env.JUDGE_ACCESS_NUMBER;
+  if (!envNum || !envNum.trim()) {
+    throw new Failure(500, 'Server misconfiguration: JUDGE_ACCESS_NUMBER environment variable is not configured.');
+  }
+  return normalizePhone(envNum);
+};
+
+router.get('/judge-check', run(async (req, res) => {
+  const judgePhone = getJudgePhone();
+  const userPhone = normalizePhone(req.user?.phone);
+  const isJudge = userPhone === judgePhone;
+  check(isJudge, 403, 'Access denied: Judge authorization required.');
+  res.json({ success: true, isJudge: true });
+}));
+
+router.get('/judge-profiles', run(async (req, res) => {
+  const judgePhone = getJudgePhone();
+  const userPhone = normalizePhone(req.user?.phone);
+  const isJudge = userPhone === judgePhone;
+  check(isJudge, 403, 'Access denied: Judge authorization required.');
+  const profiles = await prisma.party.findMany({
+    where: { user: { phone: { in: demoPhones } } },
+    select: { id: true, name: true, district: true, roles: true },
+    orderBy: { name: 'asc' },
+  });
+  res.json({ success: true, profiles });
+}));
+
+router.post('/judge-switch', run(async (req, res) => {
+  const judgePhone = getJudgePhone();
+  const userPhone = normalizePhone(req.user?.phone);
+  const isJudge = userPhone === judgePhone;
+  check(isJudge, 403, 'Access denied: Judge authorization required.');
+  const { partyId } = z.object({ partyId: z.string().uuid() }).parse(req.body);
+  const targetParty = await prisma.party.findUnique({ where: { id: partyId } });
+  check(targetParty, 404, 'Target profile not found');
+  const token = signToken({
+    userId: req.user!.userId,
+    phone: judgePhone,
+    partyId: targetParty!.id,
+    roles: targetParty!.roles,
+    district: targetParty!.district,
+    isJudgeSession: true,
+  });
+  res.json({ success: true, token, party: targetParty });
+}));
 // Keep explicitly labelled evaluation fixtures stable for the demo. All other
 // buyer profiles fall through to the live decision trust recalculation route.
 router.get('/trust/:partyId',async(req,res,next)=>{

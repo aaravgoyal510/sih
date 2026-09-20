@@ -18,13 +18,16 @@ import matchingRoutes from './routes/matching.routes';
 import adminRoutes from './routes/admin.routes';
 import adRoutes from './routes/ad.routes';
 import whatsappChannelRoutes from './routes/whatsapp-channel.routes';
-import fasalrakshakRoutes from './routes/fasalrakshak.routes';
 
 // Local development supports either backend/.env (the documented location) or
 // the repository-root .env used by the current workspace. Runtime/deployment
 // environment variables always take precedence because dotenv does not override.
 const backendEnvPath = resolve(process.cwd(), '.env');
 dotenv.config({ path: existsSync(backendEnvPath) ? backendEnvPath : resolve(process.cwd(), '..', '.env') });
+
+if (!process.env.JUDGE_ACCESS_NUMBER) {
+  console.warn('[WARNING] JUDGE_ACCESS_NUMBER environment variable is not set. Judge evaluation routes (/api/workspace/judge-*) will fail-closed with HTTP 500.');
+}
 
 export const app = express();
 app.disable('x-powered-by');
@@ -64,10 +67,11 @@ app.use('/api', (req, res, next) => {
   }
   next();
 });
-app.use('/api/guarded', guardedRoutes);
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/guarded', guardedRoutes);
+}
 app.use('/api/ads', (_req,res)=>{res.status(410).json({success:false,error:'Advertising is outside the current product scope.'});}); // Legacy records retained.
 app.use('/api/channels', whatsappChannelRoutes); // WhatsApp / SMS Channel Adapter routes
-app.use('/api/fasalrakshak', (_req,res)=>{res.status(410).json({success:false,error:'Legacy crop diagnosis is disabled: it used unsupported diagnostic confidence and unauthenticated data access. Use the decision and transaction workflows.'});}); // Legacy code/data retained for review.
 app.use('/api', mandiPriceRoutes); // Public / Farmer mandi price check
 app.use('/api', genericEngineRoutes); // Authenticated generic engine routes
 app.use('/api', matchingRoutes); // Matching Engine routes

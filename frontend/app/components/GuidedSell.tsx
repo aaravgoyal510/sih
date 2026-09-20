@@ -1,6 +1,6 @@
-"use client";
-import React, { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+'use client';
+import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,77 +11,93 @@ import {
   WifiOff,
   BarChart3,
   X,
-} from "lucide-react";
-import { useLanguage } from "../../lib/LanguageContext";
-import { copy, cropNames } from "../../lib/assist-copy";
-import { parseVoiceListing } from "../../lib/voice-listing";
-import { request, money, ApiError } from "../../lib/workspace";
-import VoiceInput, { ReadAloud } from "./VoiceControls";
-import CropIcon from "./CropIcon";
+  Star,
+  MapPin,
+} from 'lucide-react';
+import { useLanguage } from '../../lib/LanguageContext';
+import { copy, cropNames } from '../../lib/assist-copy';
+import { parseVoiceListing } from '../../lib/voice-listing';
+import { request, money, ApiError } from '../../lib/workspace';
+import VoiceInput, { ReadAloud } from './VoiceControls';
+import CropIcon from './CropIcon';
 import { API_URL } from '../../lib/api-config';
 
+const MAHARASHTRA_DISTRICTS = [
+  'Nashik',
+  'Latur',
+  'Nagpur',
+  'Pune',
+  'Ahmednagar',
+  'Solapur',
+  'Aurangabad',
+  'Amravati',
+  'Kolhapur',
+];
+
 const empty = {
-  crop: "",
-  quantity: "",
-  unit: "quintal",
-  grade: "",
-  district: "",
-  price: "",
+  crop: 'Onion',
+  quantity: '10',
+  unit: 'quintal',
+  grade: 'A',
+  district: 'Nashik',
+  price: '2500',
 };
+
 export default function GuidedSell() {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   const c = (text: string) => copy(language, text);
-  const [party, setParty] = useState<any>(null),
-    [draft, setDraft] = useState(empty),
-    [step, setStep] = useState(0),
-    [phrase, setPhrase] = useState(""),
-    [message, setMessage] = useState(""),
-    [error, setError] = useState(""),
-    [offline, setOffline] = useState(false),
-    [busy, setBusy] = useState(false),
-    [saved, setSaved] = useState<string | null>(null),
-    [pricePopup,setPricePopup]=useState(false),
-    [nearbyPrices,setNearbyPrices]=useState<any[]>([]),
-    [priceFeed,setPriceFeed]=useState<any>(null),
-    [pricesLoading,setPricesLoading]=useState(false),
-    [pricesError,setPricesError]=useState(''),
-    [ready, setReady] = useState(false);
-  const requestId = useRef(""),
-    lock = useRef(false),
-    frozen = useRef<any>(null);
+  const [party, setParty] = useState<any>(null);
+  const [draft, setDraft] = useState(empty);
+  const [phrase, setPhrase] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [offline, setOffline] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [pricePopup, setPricePopup] = useState(false);
+  const [nearbyPrices, setNearbyPrices] = useState<any[]>([]);
+  const [priceFeed, setPriceFeed] = useState<any>(null);
+  const [pricesLoading, setPricesLoading] = useState(false);
+  const [pricesError, setPricesError] = useState('');
+  const [ready, setReady] = useState(false);
+  const [customQtyMode, setCustomQtyMode] = useState(false);
+
+  const requestId = useRef('');
+  const lock = useRef(false);
+  const frozen = useRef<any>(null);
+
   useEffect(() => {
     let active = true;
-    request("/me")
+    request('/me')
       .then((d) => {
         if (!active) return;
         setParty(d.party);
         let stored: any = null;
         try {
-          stored = JSON.parse(
-            localStorage.getItem(`ks_crop_draft_${d.party.id}`) || "null",
-          );
+          stored = JSON.parse(localStorage.getItem(`ks_crop_draft_${d.party.id}`) || 'null');
         } catch {}
         if (stored?.draft) {
           setDraft({ ...empty, ...stored.draft });
           requestId.current = stored.requestId || crypto.randomUUID();
           frozen.current = stored.pendingPayload || null;
         } else {
-          setDraft({ ...empty, district: d.party.district });
+          setDraft({ ...empty, crop: 'Onion', district: d.party.district || 'Nashik' });
           requestId.current = crypto.randomUUID();
         }
         setReady(true);
       })
-      .catch(() => setError("Please sign in again."));
+      .catch(() => setError('Please sign in again.'));
     const update = () => setOffline(!navigator.onLine);
     update();
-    window.addEventListener("online", update);
-    window.addEventListener("offline", update);
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
     return () => {
       active = false;
-      window.removeEventListener("online", update);
-      window.removeEventListener("offline", update);
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
     };
   }, []);
+
   useEffect(() => {
     if (ready && party && !saved) {
       try {
@@ -91,24 +107,54 @@ export default function GuidedSell() {
             draft,
             requestId: requestId.current,
             pendingPayload: frozen.current,
-          }),
+          })
         );
       } catch {}
     }
   }, [draft, party, ready, saved]);
+
   const update = (key: string, value: string) => {
     if (frozen.current) {
-      setError("Check the status before trying again.");
+      setError('Check the status before trying again.');
       return;
     }
     setDraft((v) => ({ ...v, [key]: value }));
   };
-  async function openPricePopup(forceRefresh=true){
-    setPricePopup(true);setPricesError('');setNearbyPrices([]);
-    if(!draft.crop||draft.district.trim().length<2){setPricesError('Pehle fasal aur zila bharein.');return;}
+
+  async function openPricePopup(forceRefresh = true) {
+    setPricePopup(true);
+    setPricesError('');
+    setNearbyPrices([]);
+    if (!draft.crop || draft.district.trim().length < 2) {
+      setPricesError('Please select a crop and district first.');
+      return;
+    }
     setPricesLoading(true);
-    try{const response=await fetch(`${API_URL}/api/mandi-prices?limit=20&crop=${encodeURIComponent(draft.crop)}&district=${encodeURIComponent(draft.district.trim())}${forceRefresh?'&refresh=1':''}`,{cache:'no-store',signal:AbortSignal.timeout(75000)}),data=await response.json().catch(()=>null);if(!response.ok||!data?.success||data.source!=='AGMARKNET_LIVE')throw new Error('Sarkari mandi ke live daam abhi nahi mil paaye.');setPriceFeed(data);setNearbyPrices(Array.isArray(data.prices)?data.prices.map((price:any)=>data.fallbackDistrict?{...price,market:`${price.market} (${price.district})`}:price):[]);}catch(e:any){setPricesError(e.message||'Daam abhi nahi mil paaye.');}finally{setPricesLoading(false);}
+    try {
+      const response = await fetch(
+        `${API_URL}/api/mandi-prices?limit=20&crop=${encodeURIComponent(draft.crop)}&district=${encodeURIComponent(draft.district.trim())}${forceRefresh ? '&refresh=1' : ''}`,
+        { cache: 'no-store', signal: AbortSignal.timeout(75000) }
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success || data.source !== 'AGMARKNET_LIVE')
+        throw new Error('Live mandi prices are currently unavailable.');
+      setPriceFeed(data);
+      setNearbyPrices(
+        Array.isArray(data.prices)
+          ? data.prices.map((price: any) =>
+              data.fallbackDistrict
+                ? { ...price, market: `${price.market} (${price.district})` }
+                : price
+            )
+          : []
+      );
+    } catch (e: any) {
+      setPricesError(e.message || 'Prices unavailable right now.');
+    } finally {
+      setPricesLoading(false);
+    }
   }
+
   function capture(text: string) {
     setPhrase(text);
     const found = parseVoiceListing(text);
@@ -117,37 +163,39 @@ export default function GuidedSell() {
       ...v,
       ...(found.crop ? { crop: found.crop } : {}),
       ...(found.quantity
-        ? { quantity: String(found.quantity), unit: found.unit || "kg" }
+        ? { quantity: String(found.quantity), unit: found.unit || 'quintal' }
         : {}),
     }));
     setMessage(
       found.crop || found.quantity
-        ? "Review the captured details. Nothing is published automatically."
-        : "We could not identify a crop or quantity. Choose them below.",
+        ? 'Review the captured details below.'
+        : 'We could not identify details. Choose options below.'
     );
   }
-  const kg =
-    Number(draft.quantity) *
-    (draft.unit === "quintal" ? 100 : draft.unit === "tonne" ? 1000 : 1);
+
+  const kg = Number(draft.quantity) * 100; // Always Quintals
+  const pricePerKg = Number(draft.price) > 0 ? Number(draft.price) / 100 : 0;
+  const activeDistrict = draft.district || party?.district || 'Nashik';
+
   const valid =
     !!draft.crop &&
-    ["A", "B", "C"].includes(draft.grade) &&
-    kg > 0 &&
-    kg <= 10000000 &&
-    draft.district.trim().length >= 2 &&
+    ['A', 'B', 'C'].includes(draft.grade) &&
+    Number(draft.quantity) > 0 &&
+    activeDistrict.trim().length >= 2 &&
     Number(draft.price) > 0 &&
     Number.isFinite(Number(draft.price));
+
   async function publish() {
     if (lock.current || offline || !valid || !party) return;
     lock.current = true;
     setBusy(true);
-    setError("");
+    setError('');
     const payload = frozen.current || {
       clientRequestId: requestId.current,
-      resourceType: "CROP_LOT",
-      district: draft.district.trim(),
-      price: Number(draft.price),
-      priceUnit: "per_kg",
+      resourceType: 'CROP_LOT',
+      district: activeDistrict.trim(),
+      price: pricePerKg,
+      priceUnit: 'per_kg',
       attributes: {
         crop: draft.crop,
         quantityKg: kg,
@@ -162,342 +210,406 @@ export default function GuidedSell() {
           draft,
           requestId: requestId.current,
           pendingPayload: payload,
-        }),
+        })
       );
     } catch {}
     try {
-      const result = await request("/resources/listing", "POST", payload);
+      const result = await request('/resources/listing', 'POST', payload);
       setSaved(result.listing.id);
       try {
         localStorage.removeItem(`ks_crop_draft_${party.id}`);
       } catch {}
     } catch (error) {
-      if (
-        error instanceof ApiError &&
-        [400, 401, 403, 422].includes(error.status)
-      ) {
+      if (error instanceof ApiError && [400, 401, 403, 422].includes(error.status)) {
         frozen.current = null;
         setError(
           error.status === 401
-            ? "Please sign in again."
-            : "Please enter a valid quantity, district and price.",
+            ? 'Please sign in again.'
+            : 'Please enter a valid quantity and price.'
         );
         try {
           localStorage.setItem(
             `ks_crop_draft_${party.id}`,
-            JSON.stringify({ draft, requestId: requestId.current }),
+            JSON.stringify({ draft, requestId: requestId.current })
           );
         } catch {}
       } else
         setError(
-          "We could not confirm the save. Your draft is kept. Retry the same submission safely.",
+          'We could not confirm the save. Your draft is kept. Retry the same submission safely.'
         );
     } finally {
       setBusy(false);
       lock.current = false;
     }
   }
-  const headings = [
-    "Choose your crop",
-    "How much do you have?",
-    "Check before publishing",
-  ];
-  if (party && !party.roles.includes("FARMER"))
+
+  if (party && !party.roles.includes('FARMER'))
     return (
       <section className="ks-panel">
-        <p>{c("This page is for farmers. Choose your own portal.")}</p>
-        <Link href="/demo">{c("Switch portal")}</Link>
+        <p>{c('This page is for farmers. Choose your own portal.')}</p>
+        <Link href="/demo">{c('Switch portal')}</Link>
       </section>
     );
+
   if (saved)
     return (
-      <section className="ks-assisted ks-panel">
-        <CheckCircle2 size={56} color="#176448" />
-        <h1>{c("Your crop is published")}</h1>
-        <p>
-          {c(
-            "Buyers can now send you offers. You decide which offer to accept.",
-          )}
+      <section className="ks-assisted ks-panel" style={{ maxWidth: 680, margin: '20px auto', textAlign: 'center', padding: 32 }}>
+        <CheckCircle2 size={64} color="#176448" style={{ margin: '0 auto 16px' }} />
+        <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>{c('Your crop is published')}</h1>
+        <p style={{ fontSize: '1.1rem', color: '#475569', margin: '12px 0' }}>
+          {c('Buyers can now send you offers. You decide which offer to accept.')}
         </p>
-        <p>
-          {c(draft.crop)} · {kg.toLocaleString("en-IN")} {c("kg")} ·{" "}
-          {money(Number(draft.price))}/{c("kg")}
-        </p>
-        <ReadAloud
-          text={
-            c("Your crop is published") +
-            ". " +
-            c(
-              "Buyers can now send you offers. You decide which offer to accept.",
-            )
-          }
-        />
-        <Link href={`/farmer/buyers?listingId=${saved}`} className="ks-button">
-          {c("Find buyers")} <ArrowRight size={19} />
-        </Link>
-        <Link href="/farmer/offers" className="ks-button secondary">
-          {c("View my offers")} <ArrowRight size={19} />
-        </Link>
-        <button
-          className="ks-button secondary"
-          onClick={() => {
-            setSaved(null);
-            setDraft({ ...empty, district: party.district });
-            setStep(0);
-            requestId.current = crypto.randomUUID();
-            frozen.current = null;
-            setPhrase("");
-            setMessage("");
-          }}
-        >
-          {c("Add another crop")}
-        </button>
+        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: 12, margin: '20px 0', border: '1px solid #e2e8f0' }}>
+          <strong style={{ fontSize: '1.3rem', color: '#176448' }}>
+            {c(draft.crop)} · {draft.quantity} {c('quintal')} ({kg.toLocaleString('en-IN')} kg)
+          </strong>
+          <p style={{ fontSize: '1.1rem', margin: '4px 0 0', fontWeight: 700 }}>
+            {money(Number(draft.price))}/{c('quintal')} (₹{pricePerKg.toFixed(2)}/kg)
+          </p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Link href={`/farmer/buyers?listingId=${saved}`} className="ks-button full" style={{ minHeight: 52, fontSize: '1.1rem' }}>
+            {c('Find buyers')} <ArrowRight size={20} />
+          </Link>
+          <Link href="/farmer/offers" className="ks-button secondary full" style={{ minHeight: 52 }}>
+            {t('myOffersTitle')} <ArrowRight size={20} />
+          </Link>
+          <button
+            className="ks-button secondary full"
+            onClick={() => {
+              setSaved(null);
+              setDraft({ ...empty, district: activeDistrict });
+              requestId.current = crypto.randomUUID();
+              frozen.current = null;
+              setPhrase('');
+              setMessage('');
+            }}
+          >
+            {c('Add another crop')}
+          </button>
+        </div>
       </section>
     );
+
   return (
-    <div className="ks-assisted">
+    <div className="ks-assisted" style={{ maxWidth: 820, margin: '0 auto' }}>
       <Link className="ks-back" href="/farmer/home">
-        <ArrowLeft size={16} />
-        {c("Go home")}
+        <ArrowLeft size={18} />
+        {t('backToHome')}
       </Link>
-      <header className="ks-assist-heading">
-        <p className="ks-eyebrow">{c("Assisted selling")}</p>
-        <h1>{c("Sell my crop")}</h1>
-        <p>{c("Three small steps. You stay in control.")}</p>
+
+      <header className="ks-assist-heading" style={{ marginBottom: 20 }}>
+        <p className="ks-eyebrow">{c('QUICK LISTING')}</p>
+        <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>{t('sellMyCropTitle')}</h1>
+        <p style={{ fontSize: '1.05rem', color: '#64748b' }}>
+          {c('Choose crop, quantity and price — tap publish.')}
+        </p>
       </header>
-      <ol className="ks-steps" aria-label={c("Review")}>
-        {[Sprout, Package, ClipboardCheck].map((Icon, i) => (
-          <li
-            key={i}
-            aria-current={step === i ? "step" : undefined}
-            className={i <= step ? "active" : ""}
-          >
-            <Icon size={21} />
-            <span>{i + 1}</span>
-          </li>
-        ))}
-      </ol>
+
       {offline && (
         <p className="ks-alert">
           <WifiOff size={20} />
-          {c("Offline. Your draft is safe here; reconnect before publishing.")}
+          {c('Offline. Your draft is safe here; reconnect before publishing.')}
         </p>
       )}
       {error && (
         <p role="alert" className="ks-alert error">
           {c(error)}
-          {!party && <Link href="/demo">{c("Sign in to continue")}</Link>}
         </p>
       )}
-      <section className="ks-panel">
-        <div className="ks-section-heading">
-          <h2>{c(headings[step])}</h2>
-          <ReadAloud
-            text={
-              c(headings[step]) +
-              ". " +
-              (step === 0
-                ? c("Example: I have 20 quintals of wheat")
-                : step === 1
-                  ? c("Quantity") +
-                    ", " +
-                    c("Quality") +
-                    ", " +
-                    c("Your asking price")
-                  : c(draft.crop) +
-                    ", " +
-                    kg +
-                    " " +
-                    c("kg") +
-                    ", " +
-                    money(Number(draft.price)) +
-                    " " +
-                    c("Price per kg"))
-            }
-          />
+
+      {/* Voice Prompt Bar */}
+      <div style={{ background: '#f0fdf4', border: '2px solid #bbf7d0', borderRadius: 14, padding: 16, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <strong style={{ fontSize: '1.1rem', color: '#166534', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Sprout size={22} /> {t('speakToSell')}
+          </strong>
+          <ReadAloud text={t('speakToSell')} />
         </div>
-        {step === 0 && (
-          <>
-            <VoiceInput onText={capture} />
-            <label className="ks-assist-label">
-              {c("You can also type what you would say")}
-              <input
-                value={phrase}
-                onChange={(e) => setPhrase(e.target.value)}
-                placeholder={c("Example: I have 20 quintals of wheat")}
-              />
-            </label>
+        <VoiceInput onText={capture} />
+        {phrase && <p style={{ fontSize: '0.95rem', color: '#15803d', marginTop: 8 }}>"{phrase}"</p>}
+      </div>
+
+      <section className="ks-panel" style={{ padding: 24, borderRadius: 16 }}>
+        {/* 1. Crop Selection Cards */}
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1e293b', display: 'block', marginBottom: 12 }}>
+            1. {c('Crop')}
+          </label>
+          <div className="ks-crop-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 12 }}>
+            {cropNames.map((cropItem, i) => (
+              <button
+                type="button"
+                key={cropItem}
+                disabled={!!frozen.current}
+                aria-pressed={draft.crop === cropItem}
+                className={draft.crop === cropItem ? 'selected' : ''}
+                onClick={() => update('crop', cropItem)}
+                style={{
+                  padding: '14px 10px',
+                  borderRadius: 12,
+                  border: draft.crop === cropItem ? '3px solid #176448' : '2px solid #e2e8f0',
+                  background: draft.crop === cropItem ? '#e8f5e9' : '#ffffff',
+                  fontWeight: draft.crop === cropItem ? 800 : 600,
+                  fontSize: '1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span className={`ks-crop-symbol crop-${i % 4}`} style={{ width: 44, height: 44, borderRadius: 22 }}>
+                  <CropIcon crop={cropItem} />
+                </span>
+                {c(cropItem)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 2. Quantity Picker: Presets + Custom Option */}
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1e293b', display: 'block', marginBottom: 12 }}>
+            2. {c('Quantity (Quintals)')}
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+            {['10', '20', '50'].map((qty) => (
+              <button
+                type="button"
+                key={qty}
+                className={draft.quantity === qty && !customQtyMode ? 'ks-button' : 'ks-button secondary'}
+                style={{
+                  minHeight: 52,
+                  fontSize: '1.1rem',
+                  fontWeight: 800,
+                  borderRadius: 12,
+                  backgroundColor: draft.quantity === qty && !customQtyMode ? '#176448' : '#f8fafc',
+                  color: draft.quantity === qty && !customQtyMode ? '#ffffff' : '#1e293b',
+                  border: draft.quantity === qty && !customQtyMode ? 'none' : '2px solid #cbd5e1',
+                }}
+                onClick={() => {
+                  setCustomQtyMode(false);
+                  update('quantity', qty);
+                }}
+              >
+                {qty} {c('quintal')} ({Number(qty) * 100} kg)
+              </button>
+            ))}
             <button
               type="button"
-              className="ks-button secondary"
-              disabled={!phrase || !!frozen.current}
-              onClick={() => capture(phrase)}
+              className={customQtyMode ? 'ks-button' : 'ks-button secondary'}
+              style={{
+                minHeight: 52,
+                fontSize: '1.05rem',
+                fontWeight: 800,
+                borderRadius: 12,
+                backgroundColor: customQtyMode ? '#176448' : '#f8fafc',
+                color: customQtyMode ? '#ffffff' : '#1e293b',
+                border: customQtyMode ? 'none' : '2px solid #cbd5e1',
+              }}
+              onClick={() => setCustomQtyMode(true)}
             >
-              {c("Use these details")}
+              {t('customAmount')}
             </button>
-            {message && (
-              <p role="status" className="ks-note">
-                {c(message)}
-              </p>
-            )}
-            <div className="ks-crop-grid">
-              {cropNames.map((crop, i) => (
-                <button
-                  type="button"
-                  key={crop}
-                  disabled={!!frozen.current}
-                  aria-pressed={draft.crop === crop}
-                  className={draft.crop === crop ? "selected" : ""}
-                  onClick={() => update("crop", crop)}
-                >
-                  <span className={`ks-crop-symbol crop-${i % 4}`}>
-                    <CropIcon crop={crop} />
-                  </span>
-                  {c(crop)}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-        {step === 1 && (
-          <div className="ks-form">
-            <label>
-              {c("Quantity")}
+          </div>
+
+          {customQtyMode && (
+            <div style={{ marginTop: 12, padding: 14, background: '#f8fafc', borderRadius: 12, border: '2px solid #cbd5e1' }}>
+              <label style={{ fontSize: '1rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: 6 }}>
+                {t('customAmount')} ({c('quintal')})
+              </label>
               <input
                 inputMode="decimal"
                 type="number"
-                min="0.01"
+                min="0.1"
                 step="any"
+                placeholder="e.g. 15.5"
                 value={draft.quantity}
                 disabled={!!frozen.current}
-                onChange={(e) => update("quantity", e.target.value)}
+                onChange={(e) => update('quantity', e.target.value)}
+                style={{ width: '100%', padding: '12px 14px', fontSize: '1.1rem', borderRadius: 8, border: '1px solid #94a3b8' }}
               />
-            </label>
-            <label>
-              {c("kg")} / {c("quintal")}
-              <select
-                value={draft.unit}
-                disabled={!!frozen.current}
-                onChange={(e) => update("unit", e.target.value)}
+            </div>
+          )}
+          <p style={{ fontSize: '0.95rem', color: '#64748b', marginTop: 8 }}>
+            = <strong>{kg.toLocaleString('en-IN')} kg</strong> total harvest volume
+          </p>
+        </div>
+
+        {/* 3. Visual Quality Grade Selection */}
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1e293b', display: 'block', marginBottom: 12 }}>
+            3. {c('Quality')}
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+            {[
+              ['A', 'superQuality', '⭐⭐⭐'],
+              ['B', 'mediumQuality', '⭐⭐'],
+              ['C', 'faqQuality', '⭐'],
+            ].map(([gradeKey, labelKey, stars]) => (
+              <button
+                type="button"
+                key={gradeKey}
+                style={{
+                  padding: 16,
+                  borderRadius: 12,
+                  border: draft.grade === gradeKey ? '3px solid #176448' : '2px solid #e2e8f0',
+                  background: draft.grade === gradeKey ? '#e8f5e9' : '#ffffff',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  cursor: 'pointer',
+                }}
+                onClick={() => update('grade', gradeKey)}
               >
-                {["kg", "quintal", "tonne"].map((unit) => (
-                  <option key={unit} value={unit}>
-                    {c(unit)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className="ks-note">
-              = {Number.isFinite(kg) ? kg.toLocaleString("en-IN") : 0} {c("kg")}
-            </p>
-            <label>
-              {c("Quality")}
-              <select
-                aria-label={c('Quality')}
-                value={draft.grade}
-                disabled={!!frozen.current}
-                onChange={(e) => update("grade", e.target.value)}
-              >
-                <option value="" disabled>{c('Choose the quality you can supply')}</option>
-                {[
-                  "A — sorted, good quality",
-                  "B — mixed sizes",
-                  "C — needs inspection",
-                ].map((grade) => (
-                  <option value={grade[0]} key={grade}>
-                    {c(grade)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p>
-              {c("Your grade is self-declared. The buyer must inspect it.")}
-            </p>
-            <label>
-              {c("District")}
-              <input
-                value={draft.district}
-                disabled={!!frozen.current}
-                onChange={(e) => update("district", e.target.value)}
-              />
-            </label>
-            <label>
-              {c("Price per kg")} (₹)
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0.01"
-                step="0.01"
-                value={draft.price}
-                disabled={!!frozen.current}
-                onChange={(e) => update("price", e.target.value)}
-              />
-            </label>
-            <a href="#" className="ks-link" onClick={(event)=>{event.preventDefault();void openPricePopup();}}>
-              <BarChart3 size={17}/>
-              {c("Compare prices")} ↗
-            </a>
+                <span style={{ fontSize: '1.2rem' }}>{stars}</span>
+                <strong style={{ fontSize: '1.05rem', color: '#1e293b' }}>{t(labelKey)}</strong>
+              </button>
+            ))}
           </div>
-        )}
-        {step === 2 && (
-          <>
-            <dl className="ks-review-details">
-              {[
-                [c("Crop"), c(draft.crop)],
-                [c("Quantity"), `${kg.toLocaleString("en-IN")} ${c("kg")}`],
-                [c("Quality"), draft.grade],
-                [c("District"), draft.district],
-                [c("Price per kg"), money(Number(draft.price))],
-                [c("Total asking value"), money(kg * Number(draft.price))],
-              ].map(([name, value]) => (
-                <div key={name}>
-                  <dt>{name}</dt>
-                  <dd>{value}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="ks-note">
-              {c(
-                "This is an asking price, not a guaranteed sale or take-home amount.",
-              )}
-            </p>
-          </>
-        )}
-        <div className="ks-assist-actions">
-          {step > 0 && (
+        </div>
+
+        {/* 4. District Selector with 1-Tap Fallback Pills */}
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1e293b', display: 'block', marginBottom: 8 }}>
+            4. {t('districtLabel')}
+          </label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+            {MAHARASHTRA_DISTRICTS.slice(0, 5).map((d) => (
+              <button
+                type="button"
+                key={d}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 20,
+                  fontSize: '0.95rem',
+                  fontWeight: activeDistrict === d ? 800 : 600,
+                  border: activeDistrict === d ? '2px solid #176448' : '1px solid #cbd5e1',
+                  background: activeDistrict === d ? '#176448' : '#f8fafc',
+                  color: activeDistrict === d ? '#ffffff' : '#334155',
+                  cursor: 'pointer',
+                }}
+                onClick={() => update('district', d)}
+              >
+                <MapPin size={14} style={{ display: 'inline', marginRight: 4 }} />
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 5. Asking Price Input in ₹/Quintal */}
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <label style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1e293b' }}>
+              5. {c('Asking price per quintal (₹)')}
+            </label>
             <button
               type="button"
-              className="ks-button secondary"
-              disabled={busy}
-              onClick={() => setStep((s) => s - 1)}
+              className="ks-link"
+              style={{ fontSize: '0.95rem', fontWeight: 700 }}
+              onClick={(e) => {
+                e.preventDefault();
+                void openPricePopup();
+              }}
             >
-              <ArrowLeft size={18} />
-              {c("Back")}
+              <BarChart3 size={16} /> {c('Compare prices')} ↗
             </button>
-          )}
-          {step < 2 ? (
-            <button
-              className="ks-button"
-              disabled={!ready || (step === 0 ? !draft.crop : !valid)}
-              onClick={() => setStep((s) => s + 1)}
-            >
-              {c(step === 1 ? "Review" : "Next")}
-              <ArrowRight size={19} />
-            </button>
-          ) : (
-            <button
-              className="ks-button"
-              disabled={busy || offline || !valid || !party}
-              onClick={publish}
-            >
-              {c(busy ? "Saving your crop…" : "Publish crop")}
-              <CheckCircle2 size={19} />
-            </button>
+          </div>
+          <input
+            type="number"
+            inputMode="decimal"
+            min="1"
+            step="1"
+            placeholder="e.g. 2500"
+            value={draft.price}
+            disabled={!!frozen.current}
+            onChange={(e) => update('price', e.target.value)}
+            style={{
+              width: '100%',
+              padding: '14px 16px',
+              fontSize: '1.3rem',
+              fontWeight: 800,
+              borderRadius: 12,
+              border: '2px solid #176448',
+              color: '#176448',
+            }}
+          />
+          {Number(draft.price) > 0 && (
+            <div style={{ marginTop: 8, fontSize: '1rem', color: '#475569', fontWeight: 600 }}>
+              = <strong>₹{(Number(draft.price) / 100).toFixed(2)} / kg</strong> · {c('Total value')}:{' '}
+              <strong style={{ color: '#176448' }}>{money(kg * pricePerKg)}</strong>
+            </div>
           )}
         </div>
-        <p className="ks-subtitle">{c("Saved on this device as a draft.")}</p>
+
+        {/* Big Single-Tap Publish Button */}
+        <button
+          className="ks-button full"
+          disabled={busy || offline || !valid || !party}
+          onClick={publish}
+          style={{
+            minHeight: 60,
+            fontSize: '1.25rem',
+            fontWeight: 800,
+            borderRadius: 14,
+            backgroundColor: '#176448',
+            boxShadow: '0 4px 14px rgba(23, 100, 72, 0.3)',
+          }}
+        >
+          {busy ? c('Saving your crop…') : `${t('sellMyCropTitle')} (${money(kg * pricePerKg)})`}
+          <CheckCircle2 size={24} style={{ marginLeft: 8 }} />
+        </button>
       </section>
-      {pricePopup&&<div className="ks-modal-backdrop" role="presentation" onMouseDown={()=>setPricePopup(false)}><section className="ks-modal" role="dialog" aria-modal="true" aria-labelledby="nearby-price-title" onMouseDown={e=>e.stopPropagation()}><header className="ks-section-heading"><div><p className="ks-eyebrow">Aas paas ke daam</p><h2 id="nearby-price-title">Price Compare</h2></div><button className="ks-icon-button" aria-label="Band Karein" onClick={()=>setPricePopup(false)}><X size={20}/></button></header><p className="ks-subtitle">{draft.crop} · {draft.district}. Mandi ke daam sirf jaankari ke liye hain; yeh pakka khareedar ka daam nahi hai.</p>{pricesLoading?<p className="ks-loading">Daam dekh rahe hain…</p>:pricesError?<p className="ks-alert error">{pricesError}</p>:nearbyPrices.length?<dl className="ks-review-details">{nearbyPrices.map((price:any)=><div key={price.id}><dt>{price.market}</dt><dd><strong>{money(Number(price.pricePerKg))}/kg</strong><small>Mandi daam · {new Date(price.recordedAt).toLocaleDateString('en-IN')}</small><button type="button" className="ks-button secondary" onClick={()=>{update('price',String(price.pricePerKg));setPricePopup(false);}}>Use this price</button></dd></div>)}</dl>:<p className="ks-note">Is fasal ke liye is zila mein abhi koi mandi daam nahi mila. Apna daam bhar sakte hain.</p>}<button type="button" className="ks-button secondary full" onClick={()=>setPricePopup(false)}>Band Karein</button></section></div>}
+
+      {/* Price Comparison Modal */}
+      {pricePopup && (
+        <div className="ks-modal-backdrop" role="presentation" onMouseDown={() => setPricePopup(false)}>
+          <section className="ks-modal" role="dialog" aria-modal="true" onMouseDown={(e) => e.stopPropagation()}>
+            <header className="ks-section-heading">
+              <div>
+                <p className="ks-eyebrow">{c('Nearby Mandi Prices')}</p>
+                <h2>{c('Compare prices')}</h2>
+              </div>
+              <button className="ks-icon-button" aria-label={c('Close')} onClick={() => setPricePopup(false)}>
+                <X size={20} />
+              </button>
+            </header>
+            {pricesLoading ? (
+              <p className="ks-loading">{c('Checking market prices…')}</p>
+            ) : pricesError ? (
+              <p className="ks-alert error">{c(pricesError)}</p>
+            ) : nearbyPrices.length ? (
+              <dl className="ks-review-details">
+                {nearbyPrices.map((price: any) => (
+                  <div key={price.id}>
+                    <dt>{price.market}</dt>
+                    <dd>
+                      <strong>{money(Math.round(Number(price.pricePerKg) * 100))} / {c('quintal')}</strong>
+                      <button
+                        type="button"
+                        className="ks-button secondary"
+                        onClick={() => {
+                          update('price', String(Math.round(price.pricePerKg * 100)));
+                          setPricePopup(false);
+                        }}
+                      >
+                        {c('Use this price')}
+                      </button>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p className="ks-note">{c('No mandi prices found for this crop in your district.')}</p>
+            )}
+            <button type="button" className="ks-button secondary full" onClick={() => setPricePopup(false)}>
+              {c('Close')}
+            </button>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

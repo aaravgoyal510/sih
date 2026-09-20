@@ -19,7 +19,10 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [language, setLanguageState] = useState<Language>('en');
 
   useEffect(() => {
-    let saved:Language|null=null;try{saved=localStorage.getItem('maha_lang') as Language;}catch{}
+    let saved: Language | null = null;
+    try {
+      saved = localStorage.getItem('maha_lang') as Language;
+    } catch {}
     if (saved && (saved === 'en' || saved === 'hi' || saved === 'mr')) {
       setLanguageState(saved);
     }
@@ -27,10 +30,14 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    try{localStorage.setItem('maha_lang', lang);}catch{}
+    try {
+      localStorage.setItem('maha_lang', lang);
+    } catch {}
   };
 
-  useEffect(() => { document.documentElement.lang = language; }, [language]);
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   const t = (key: string): string => {
     const dict = TRANSLATIONS[language] || TRANSLATIONS['en'];
