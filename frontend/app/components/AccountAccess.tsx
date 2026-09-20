@@ -7,12 +7,12 @@ import { API_URL } from '../../lib/api-config';
 import { destination } from '../../lib/workspace';
 import { useLanguage } from '../../lib/LanguageContext';
 import { copy } from '../../lib/assist-copy';
-export default function AccountAccess() {
+export default function AccountAccess({ mode = 'login' }: { mode?: 'login' | 'register' }) {
   const { language } = useLanguage(),
     c = (s: string) => copy(language, s),
     router = useRouter();
-  const [register, setRegister] = useState(false),
-    [busy, setBusy] = useState(false),
+  const register = mode === 'register';
+  const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const lock = useRef(false);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -145,17 +145,13 @@ export default function AccountAccess() {
           <ArrowRight size={18} />
         </button>
       </form>
-      <button
-        type="button"
+      <Link
+        href={register ? '/login' : '/register'}
         className="ks-button secondary"
-        disabled={busy}
-        onClick={() => {
-          setRegister(!register);
-          setError('');
-        }}
+        style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', textDecoration: 'none' }}
       >
         {c(register ? 'Already have an account? Sign in' : 'New here? Create an account')}
-      </button>
+      </Link>
     </section>
   );
 }

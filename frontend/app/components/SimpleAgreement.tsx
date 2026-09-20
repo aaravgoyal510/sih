@@ -49,13 +49,17 @@ export default function SimpleAgreement({ offer: o }: { offer: any }) {
           : b.fulfillmentStatus === 'IN_PROGRESS'
             ? 'Active'
             : 'Accepted';
-  const resource = s ? { resourceType: s.resourceType, attributes: s.resource } : o.listing;
+  const resource = s
+    ? { resourceType: s.resourceType, attributes: s.resource || s.equipmentDetails || {} }
+    : (o.listing || {});
+  const resourceType = resource?.resourceType || o.listing?.resourceType || 'CROP_LOT';
+  const itemLabel = resourceType === 'CROP_LOT' ? 'Crop' : 'Resource / Service';
   const rows = [
-    [c('Supplier'), s?.seller?.name || o.listing.party.name],
+    [c('Supplier'), s?.seller?.name || o.listing?.party?.name || c('Unknown')],
     [c('Buyer'), s?.buyer?.name || o.requirement?.party?.name || c('Not agreed yet')],
-    [c('Crop'), c(resourceTitle(resource))],
+    [c(itemLabel), c(resourceTitle(resource))],
     [c('Quantity'), quantity + ' ' + c(unit)],
-    [c('Quality'), resource.attributes.qualityGrade || c('Not agreed yet')],
+    [c('Quality'), resource?.attributes?.qualityGrade || c('Standard / Not specified')],
     [c('Agreed price'), money(price) + ' / ' + c(unit)],
     [
       c('Total value'),
